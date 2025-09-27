@@ -194,8 +194,9 @@ app.get('/torinometeo.json', async (req, res) => {
 // --- Endpoint Meteo3R ---
 app.get('/meteo3r.json', async (req, res) => {
   try {
-    const url = "https://corsproxy.io/?" + 
-      encodeURIComponent("https://www.meteo3r.it/dati/mappe/misure.geojson");
+    const url = "https://api.allorigins.win/raw?url=" + 
+    encodeURIComponent("https://www.meteo3r.it/dati/mappe/misure.geojson");
+  
 
     const response = await fetch(url);
     if (!response.ok) throw new Error("HTTP " + response.status);
