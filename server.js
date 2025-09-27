@@ -1,6 +1,7 @@
 import cors from "cors";
 import express from "express";
 import fetch from "node-fetch";
+import cheerio from "cheerio";
 
 const app = express();
 const port = 3111;
@@ -369,8 +370,9 @@ app.get('/limet.json', async (req, res) => {
   }
 });
 // --- Nuovo endpoint DMA ---
+
 const stationsDMA = {
-  Capriglio: { lat: 45.013, lon: 8.023 }
+  Capriglio: { lat: 45.013, lon: 8.023, htmlId: "C4:93:00:10:12:67" }
 };
 
 app.get('/datimeteoasti.json', async (req, res) => {
@@ -379,35 +381,37 @@ app.get('/datimeteoasti.json', async (req, res) => {
     const lines = [JSON.stringify({ timestamp })];
 
     for (const stName in stationsDMA) {
-      const url = `https://maps.datimeteoasti.it/api/stationDataTrend/${stName.toLowerCase()}`;
+      const station = stationsDMA[stName];
+      const url = `https://maps.datimeteoasti.it/weather-station/data/${station.htmlId}`;
       const response = await fetch(url);
       if (!response.ok) {
         lines.push(JSON.stringify({ S: "1", N: stName }));
         continue;
       }
 
-      const data = await response.json();
+      const html = await response.text();
+      const dom = new JSDOM(html);
+      const document = dom.window.document;
 
-      // prendi l'ultimo valore di ogni serie
-      const temperatureSeries = data.series.temperature;
-      const humiditySeries = data.series.humidity;
-      const dewSeries = data.series.dew_point;
+      // selettori di esempio, sostituire con quelli reali della pagina
+      const tempText = document.querySelector('#temperature-value')?.textContent || null;
+      const humText = document.querySelector('#humidity-value')?.textContent || null;
+      const dewText = document.querySelector('#dew-point-value')?.textContent || null;
 
-      const latestTemp = temperatureSeries.length ? parseFloat(temperatureSeries[temperatureSeries.length - 1].value) : null;
-      const latestHum = humiditySeries.length ? parseFloat(humiditySeries[humiditySeries.length - 1].value) : null;
-      const latestDew = dewSeries.length ? parseFloat(dewSeries[dewSeries.length - 1].value) : null;
+      const latestTemp = tempText ? parseFloat(tempText).toFixed(1) : null;
+      const latestHum = humText ? parseFloat(humText).toFixed(1) : null;
+      const latestDew = dewText ? parseFloat(dewText).toFixed(1) : null;
 
       const obj = {
         S: "0",
         N: stName,
         T: latestTemp,
-        TL: temperatureSeries.length ? parseFloat(temperatureSeries[0].value) : null, // min storico
-        TH: latestTemp, // max attuale uguale all'ultimo
+        TL: latestTemp,
+        TH: latestTemp,
         H: latestHum,
         D: latestDew,
-        LAT: stationsDMA[stName].lat,
-        LON: stationsDMA[stName].lon,
-        time: temperatureSeries.length ? temperatureSeries[temperatureSeries.length - 1].timestamp : timestamp
+        LAT: station.lat,
+        LON: station.lon
       };
 
       lines.push(JSON.stringify(obj));
@@ -415,9 +419,9 @@ app.get('/datimeteoasti.json', async (req, res) => {
 
     res.setHeader("Content-Type", "application/json");
     res.send(lines.join("\n"));
-
+    
   } catch (err) {
-    console.error("Errore fetch DMA:", err);
+    console.error("Errore fetch DMA HTML:", err);
     res.status(500).json({ error: err.message });
   }
 });
