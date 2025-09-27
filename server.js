@@ -371,7 +371,7 @@ app.get('/limet.json', async (req, res) => {
 });
 // --- Nuovo endpoint DMA ---
 const stationsDMA = {
-  Capriglio: { lat: 45.013, lon: 8.023, link: "C4:93:00:10:12:67" }
+  Capriglio: { lat: 45.013, lon: 8.023, link: "capriglio" }
 };
 
 app.get('/datimeteoasti.json', async (req, res) => {
