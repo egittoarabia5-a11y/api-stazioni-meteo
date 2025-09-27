@@ -379,41 +379,35 @@ app.get('/datimeteoasti.json', async (req, res) => {
     const lines = [JSON.stringify({ timestamp })];
 
     for (const stName in stationsDMA) {
-      const url = `https://maps.datimeteoasti.it/weather-station/data/capriglio`;
-
+      const url = `https://maps.datimeteoasti.it/api/stationDataTrend/${stName.toLowerCase()}`;
       const response = await fetch(url);
-      const text = await response.text();
-
-      // estrai JSON usando regex
-      const match = text.match(/0:(\{.*?\})/s);
-      if (!match) {
+      if (!response.ok) {
         lines.push(JSON.stringify({ S: "1", N: stName }));
         continue;
       }
 
-      let jsonStr = match[1];
+      const data = await response.json();
 
-      // parse JSON
-      let data;
-      try {
-        data = JSON.parse(jsonStr);
-      } catch (err) {
-        lines.push(JSON.stringify({ S: "1", N: stName }));
-        continue;
-      }
+      // prendi l'ultimo valore di ogni serie
+      const temperatureSeries = data.series.temperature;
+      const humiditySeries = data.series.humidity;
+      const dewSeries = data.series.dew_point;
 
-      // estrai valori principali
-      const latest = data.weather_station?.latest_values;
+      const latestTemp = temperatureSeries.length ? parseFloat(temperatureSeries[temperatureSeries.length - 1].value) : null;
+      const latestHum = humiditySeries.length ? parseFloat(humiditySeries[humiditySeries.length - 1].value) : null;
+      const latestDew = dewSeries.length ? parseFloat(dewSeries[dewSeries.length - 1].value) : null;
+
       const obj = {
         S: "0",
         N: stName,
-        T: latest?.temperature?.current ? parseFloat(latest.temperature.current) : null,
-        TL: latest?.temperature?.min?.value ? parseFloat(latest.temperature.min.value) : null,
-        TH: latest?.temperature?.max?.value ? parseFloat(latest.temperature.max.value) : null,
-        H: latest?.humidity?.current ? parseFloat(latest.humidity.current) : null,
+        T: latestTemp,
+        TL: temperatureSeries.length ? parseFloat(temperatureSeries[0].value) : null, // min storico
+        TH: latestTemp, // max attuale uguale all'ultimo
+        H: latestHum,
+        D: latestDew,
         LAT: stationsDMA[stName].lat,
         LON: stationsDMA[stName].lon,
-        time: latest?.system?.timestamp || timestamp
+        time: temperatureSeries.length ? temperatureSeries[temperatureSeries.length - 1].timestamp : timestamp
       };
 
       lines.push(JSON.stringify(obj));
@@ -427,6 +421,7 @@ app.get('/datimeteoasti.json', async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+
 
 
 
