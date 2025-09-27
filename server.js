@@ -1,17 +1,30 @@
 import cors from "cors";
-import express from 'express';
-import fetch from 'node-fetch';
+import express from "express";
+import fetch from "node-fetch";
 
 const app = express();
 const port = 3111;
 
 app.use(cors());
 
+// --- Variabili globali ---
+const latestData = {};
+const markers = {};
+const stations3R = {};
+
 // --- Funzione comune per convertire coordinate fittizie in reali ---
 function fittizioAReale(xFittizio, yFittizio) {
   const lon = ((8260 + xFittizio / 1.18) / 1000).toFixed(3);
   const lat = ((46730 - yFittizio / 1.72) / 1000).toFixed(3);
   return { lat, lon };
+}
+
+// --- Funzioni per marker (placeholder) ---
+function createMarker(id, lat, lon) {
+  // logica per creare marker sulla mappa
+}
+function updateMarker(id) {
+  // logica per aggiornare marker sulla mappa
 }
 
 // --- Endpoint CML ---
@@ -192,10 +205,8 @@ app.get('/torinometeo.json', async (req, res) => {
   }
 });
 
-// --- Cache Meteo3R ---
-let meteo3rCache = null;
-
-async function updateMeteo3R() {
+// --- Endpoint Meteo3R ---
+app.get('/meteo3r.json', async (req, res) => {
   try {
     const url = "https://www.meteo3r.it/dati/mappe/misure.geojson";
     const response = await fetch(url);
@@ -203,7 +214,7 @@ async function updateMeteo3R() {
 
     const geojson = await response.json();
     if (!geojson.features || !Array.isArray(geojson.features)) {
-      throw new Error("Formato GeoJSON inatteso");
+      return res.status(500).json({ error: "Formato GeoJSON inatteso" });
     }
 
     const timestamp = new Date().toISOString();
@@ -219,15 +230,11 @@ async function updateMeteo3R() {
       const temp = st.properties.T !== "" ? parseFloat(st.properties.T) : null;
       const tempHigh = st.properties.T_MAX !== "" ? parseFloat(st.properties.T_MAX) : null;
       const tempLow = st.properties.T_MIN !== "" ? parseFloat(st.properties.T_MIN) : null;
-
       const hum = st.properties.U !== "" ? parseFloat(st.properties.U) : null;
       const humHigh = st.properties.U_MAX !== "" ? parseFloat(st.properties.U_MAX) : null;
       const humLow = st.properties.U_MIN !== "" ? parseFloat(st.properties.U_MIN) : null;
-
       const wind = st.properties.VV !== "" ? parseFloat(st.properties.VV) : null;
       const windGust = st.properties.VV_MAX !== "" ? parseFloat(st.properties.VV_MAX) : null;
-      const windDir = st.properties.DD !== "" ? parseFloat(st.properties.DD) : null;
-
       const rainDaily = st.properties.P_24H !== "" ? parseFloat(st.properties.P_24H) : null;
       const rainRate = st.properties.P !== "" ? parseFloat(st.properties.P) : null;
 
@@ -237,34 +244,69 @@ async function updateMeteo3R() {
         T: temp, TH: tempHigh, TL: tempLow,
         D: null, DH: null, DL: null,
         H: hum, HH: humHigh, HL: humLow,
-        V: wind, G: windGust, R: rainDaily, RR: rainRate,
+        V: wind, G: windGust,
+        R: rainDaily, RR: rainRate,
         LAT: lat, LON: lon
       };
 
       lines.push(JSON.stringify(obj));
     });
 
-    meteo3rCache = lines.join("\n");
-    console.log("Meteo3R aggiornato", timestamp);
+    res.setHeader("Content-Type", "application/json");
+    res.send(lines.join("\n"));
   } catch (err) {
-    console.error("Errore aggiornamento Meteo3R:", err);
+    console.error("Errore fetch Meteo3R:", err);
+    res.status(500).json({ error: err.message });
   }
-}
-
-// Aggiorna subito e poi ogni 5 minuti
-updateMeteo3R();
-setInterval(updateMeteo3R, 5 * 60 * 1000);
-
-// --- Endpoint Meteo3R ---
-app.get('/meteo3r.json', (req, res) => {
-  if (!meteo3rCache) {
-    return res.status(500).json({ error: "Dati Meteo3R non ancora disponibili" });
-  }
-  res.setHeader("Content-Type", "application/json");
-  res.send(meteo3rCache);
 });
 
-// --- Serve HTML ---
-app.use(express.static('public'));
+// --- Nuovo endpoint LIMET ---
+const stationsLIMET = [
+  { name: "Fabbriche Brusinetti", link: "fabbriche-brusinetti" }
+];
 
-app.listen(port, () => console.log(`Server running at http://localhost:${port}`));
+app.get('/limet.json', async (req, res) => {
+  try {
+    const timestamp = new Date().toISOString();
+    const lines = [JSON.stringify({ timestamp })];
+
+    for (const st of stationsLIMET) {
+      const url = `https://retelimet.centrometeoligure.it/stazioni/${st.link}/data/cu/realtimegauges.txt`;
+      const response = await fetch(url);
+      if (!response.ok) {
+        lines.push(JSON.stringify({ S: "1", N: st.name }));
+        continue;
+      }
+
+      const data = await response.json();
+
+      const obj = {
+        S: "0",
+        N: st.name,
+        T: parseFloat(data.temp.replace(",", ".")),
+        TL: parseFloat(data.tempTL.replace(",", ".")),
+        TH: parseFloat(data.tempTH.replace(",", ".")),
+        D: parseFloat(data.dew.replace(",", ".")),
+        H: parseFloat(data.hum),
+        V: parseFloat(data.wspeed.replace(",", ".")),
+        G: parseFloat(data.wgust.replace(",", ".")),
+        R: parseFloat(data.rfall.replace(",", ".")),
+        RR: parseFloat(data.rrate.replace(",", ".")),
+        LAT: null,
+        LON: null,
+        time: data.timeUTC // <-- timestamp LIMET originale
+      };
+
+      lines.push(JSON.stringify(obj));
+    }
+
+    res.setHeader("Content-Type", "application/json");
+    res.send(lines.join("\n"));
+  } catch (err) {
+    console.error("Errore fetch LIMET:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// --- Avvio server ---
+app.listen(port, () => console.log(`Server in ascolto su http://localhost:${port}`));
