@@ -15,7 +15,6 @@ function fittizioAReale(xFittizio, yFittizio) {
 }
 
 // --- Endpoint CML ---
-// --- Endpoint CML ---
 app.get('/cml.json', async (req, res) => {
   try {
     const CML_URL = 'https://corsproxy.io/?' + 
@@ -33,7 +32,7 @@ app.get('/cml.json', async (req, res) => {
     const datostazione = JSON.parse(matchData[1].replace(/'/g, '"'));
 
     const timestamp = new Date().toISOString();
-    const lines = [JSON.stringify({ timestamp })]; // PRIMA riga: timestamp
+    const lines = [JSON.stringify({ timestamp })];
 
     coords.forEach((c, i) => {
       const row = datostazione[i] || [];
@@ -56,7 +55,7 @@ app.get('/cml.json', async (req, res) => {
         LAT: lat, LON: lon
       };
 
-      lines.push(JSON.stringify(obj)); // ogni stazione su una riga
+      lines.push(JSON.stringify(obj));
     });
 
     res.setHeader('Content-Type', 'application/json');
@@ -96,7 +95,7 @@ app.get('/omirl.json', async (req, res) => {
     const rainMap = mapSensor(rainData, ['last', 'max']);
 
     const timestamp = new Date().toISOString();
-    const lines = [JSON.stringify({ timestamp })]; // PRIMA riga: timestamp
+    const lines = [JSON.stringify({ timestamp })];
 
     stations.forEach(st => {
       const id = st.shortCode || st.code;
@@ -137,6 +136,61 @@ app.get('/omirl.json', async (req, res) => {
   }
 });
 
+// --- Endpoint TorinoMeteo ---
+app.get('/torinometeo.json', async (req, res) => {
+  try {
+    const url = "https://www.torinometeo.org/api/v1/realtime/data/?format=json";
+    const response = await fetch(url);
+    const data = await response.json();
+
+    if (!Array.isArray(data)) return res.status(500).json({ error: "Risposta TorinoMeteo inattesa" });
+
+    const timestamp = new Date().toISOString();
+    const lines = [JSON.stringify({ timestamp })];
+
+    data.forEach(stationData => {
+      const st = stationData.station;
+      const name = st.name || st.slug;
+      const lat = parseFloat(st.lat);
+      const lon = parseFloat(st.lng);
+
+      const temp = stationData.temperature ?? null;
+      const tempHigh = stationData.temperature_max ?? null;
+      const tempLow = stationData.temperature_min ?? null;
+
+      const hum = stationData.relative_humidity ?? null;
+      const humHigh = stationData.relative_humidity_max ?? null;
+      const humLow = stationData.relative_humidity_min ?? null;
+
+      const wind = stationData.wind_strength ?? null;
+      const windGust = stationData.wind_strength_max ?? null;
+
+      const rain = stationData.rain ?? null;
+      const rainRate = stationData.rain_rate ?? null;
+
+      const inactive = temp == null && hum == null && wind == null && rain == null;
+
+      const obj = {
+        S: inactive ? "1" : "0",
+        N: name,
+        T: temp, TH: tempHigh, TL: tempLow,
+        D: null, DH: null, DL: null,
+        H: hum, HH: humHigh, HL: humLow,
+        V: wind, G: windGust,
+        R: rain, RR: rainRate,
+        LAT: lat, LON: lon
+      };
+
+      lines.push(JSON.stringify(obj));
+    });
+
+    res.setHeader('Content-Type', 'application/json');
+    res.send(lines.join("\n"));
+  } catch (err) {
+    console.error("Errore fetch TorinoMeteo:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
 
 // --- Serve HTML ---
 app.use(express.static('public'));
