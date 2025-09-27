@@ -191,6 +191,69 @@ app.get('/torinometeo.json', async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+// --- Endpoint Meteo3R ---
+app.get('/meteo3r.json', async (req, res) => {
+  try {
+    const url = "https://corsproxy.io/?" + 
+      encodeURIComponent("https://www.meteo3r.it/dati/mappe/misure.geojson");
+
+    const response = await fetch(url);
+    if (!response.ok) throw new Error("HTTP " + response.status);
+
+    const geojson = await response.json();
+
+    if (!geojson.features || !Array.isArray(geojson.features)) {
+      return res.status(500).json({ error: "Formato GeoJSON inatteso" });
+    }
+
+    const timestamp = new Date().toISOString();
+    const lines = [JSON.stringify({ timestamp })]; // prima riga: timestamp
+
+    geojson.features.forEach(st => {
+      const id = st.properties.IDRETE_CODSTAZ;
+      if (!id.startsWith("PIE") && !id.startsWith("VDA")) return;
+
+      const lat = parseFloat(st.geometry.coordinates[1]);
+      const lon = parseFloat(st.geometry.coordinates[0]);
+
+      // parsing sicuro dei valori
+      const temp = st.properties.T !== "" ? parseFloat(st.properties.T) : null;
+      const tempHigh = st.properties.T_MAX !== "" ? parseFloat(st.properties.T_MAX) : null;
+      const tempLow = st.properties.T_MIN !== "" ? parseFloat(st.properties.T_MIN) : null;
+
+      const hum = st.properties.U !== "" ? parseFloat(st.properties.U) : null;
+      const humHigh = st.properties.U_MAX !== "" ? parseFloat(st.properties.U_MAX) : null;
+      const humLow = st.properties.U_MIN !== "" ? parseFloat(st.properties.U_MIN) : null;
+
+      const wind = st.properties.VV !== "" ? parseFloat(st.properties.VV) : null;
+      const windGust = st.properties.VV_MAX !== "" ? parseFloat(st.properties.VV_MAX) : null;
+      const windDir = st.properties.DD !== "" ? parseFloat(st.properties.DD) : null;
+
+      const rainDaily = st.properties.P_24H !== "" ? parseFloat(st.properties.P_24H) : null;
+      const rainRate = st.properties.P !== "" ? parseFloat(st.properties.P) : null;
+
+      const obj = {
+        S: (temp == null && hum == null && wind == null && rainDaily == null) ? "1" : "0",
+        N: st.properties.STAZIONE || id,
+        T: temp, TH: tempHigh, TL: tempLow,
+        D: null, DH: null, DL: null,
+        H: hum, HH: humHigh, HL: humLow,
+        V: wind, G: windGust, R: rainDaily, RR: rainRate,
+        LAT: lat, LON: lon
+      };
+
+      lines.push(JSON.stringify(obj));
+    });
+
+    res.setHeader("Content-Type", "application/json");
+    res.send(lines.join("\n"));
+
+  } catch (err) {
+    console.error("Errore fetch Meteo3R:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 
 // --- Serve HTML ---
 app.use(express.static('public'));
