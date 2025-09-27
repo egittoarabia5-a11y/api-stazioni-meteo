@@ -385,13 +385,14 @@ app.get('/datimeteoasti.json', async (req, res) => {
       const text = await response.text();
 
       // Estrai il JSON vero usando regex
-      const match = text.match(/{"weather_station":.*}$/s);
+      const match = text.match(/{"weather_station":{.*?}}/s);
       if (!match) {
         lines.push(JSON.stringify({ S: "1", N: name }));
         continue;
       }
-
+      
       const data = JSON.parse(match[0]);
+      
 
       const latest = data.weather_station.latest_values;
 
