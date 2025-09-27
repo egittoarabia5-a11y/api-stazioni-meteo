@@ -500,34 +500,38 @@ app.get('/limet.json', async (req, res) => {
     const timestamp = new Date().toISOString();
     const lines = [JSON.stringify({ timestamp })];
 
-    for (const st of stationsLIMET) {
+    for (const [name, st] of Object.entries(stationsLIMET)) {
       const url = `https://retelimet.centrometeoligure.it/stazioni/${st.link}/data/cu/realtimegauges.txt`;
-      const response = await fetch(url);
-      if (!response.ok) {
-        lines.push(JSON.stringify({ S: "1", N: st.name }));
-        continue;
+      try {
+        const response = await fetch(url);
+        if (!response.ok) {
+          lines.push(JSON.stringify({ S: "1", N: name }));
+          continue;
+        }
+
+        const data = await response.json();
+
+        const obj = {
+          S: "0",
+          N: name,
+          T: parseFloat(data.temp.replace(",", ".")),
+          TL: parseFloat(data.tempTL.replace(",", ".")),
+          TH: parseFloat(data.tempTH.replace(",", ".")),
+          D: parseFloat(data.dew.replace(",", ".")),
+          H: parseFloat(data.hum),
+          V: parseFloat(data.wspeed.replace(",", ".")),
+          G: parseFloat(data.wgust.replace(",", ".")),
+          R: parseFloat(data.rfall.replace(",", ".")),
+          RR: parseFloat(data.rrate.replace(",", ".")),
+          LAT: st.lat,
+          LON: st.lon,
+          time: data.timeUTC
+        };
+
+        lines.push(JSON.stringify(obj));
+      } catch (err) {
+        lines.push(JSON.stringify({ S: "1", N: name }));
       }
-
-      const data = await response.json();
-
-      const obj = {
-        S: "0",
-        N: st.name,
-        T: parseFloat(data.temp.replace(",", ".")),
-        TL: parseFloat(data.tempTL.replace(",", ".")),
-        TH: parseFloat(data.tempTH.replace(",", ".")),
-        D: parseFloat(data.dew.replace(",", ".")),
-        H: parseFloat(data.hum),
-        V: parseFloat(data.wspeed.replace(",", ".")),
-        G: parseFloat(data.wgust.replace(",", ".")),
-        R: parseFloat(data.rfall.replace(",", ".")),
-        RR: parseFloat(data.rrate.replace(",", ".")),
-        LAT: null,
-        LON: null,
-        time: data.timeUTC // <-- timestamp LIMET originale
-      };
-
-      lines.push(JSON.stringify(obj));
     }
 
     res.setHeader("Content-Type", "application/json");
@@ -537,6 +541,7 @@ app.get('/limet.json', async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+
 
 // --- Avvio server ---
 app.listen(port, () => console.log(`Server in ascolto su http://localhost:${port}`));
