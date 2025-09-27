@@ -378,39 +378,42 @@ app.get('/datimeteoasti.json', async (req, res) => {
     const timestamp = new Date().toISOString();
     const lines = [JSON.stringify({ timestamp })];
 
-    for (const [name, st] of Object.entries(stationsDMA)) {
+    for (const stName in stationsDMA) {
       const url = `https://maps.datimeteoasti.it/weather-station/data/capriglio`;
 
       const response = await fetch(url);
       const text = await response.text();
 
-      // Estrai il JSON vero usando regex
-      const match = text.match(/{"weather_station":{.*?}}/s);
+      // estrai JSON usando regex
+      const match = text.match(/0:(\{.*?\})/s);
       if (!match) {
-        lines.push(JSON.stringify({ S: "1", N: name }));
+        lines.push(JSON.stringify({ S: "1", N: stName }));
         continue;
       }
-      
-      const data = JSON.parse(match[0]);
-      
 
-      const latest = data.weather_station.latest_values;
+      let jsonStr = match[1];
 
+      // parse JSON
+      let data;
+      try {
+        data = JSON.parse(jsonStr);
+      } catch (err) {
+        lines.push(JSON.stringify({ S: "1", N: stName }));
+        continue;
+      }
+
+      // estrai valori principali
+      const latest = data.weather_station?.latest_values;
       const obj = {
         S: "0",
-        N: name,
-        T: latest.temperature?.current ? parseFloat(latest.temperature.current) : null,
-        TL: latest.temperature?.min?.value ? parseFloat(latest.temperature.min.value) : null,
-        TH: latest.temperature?.max?.value ? parseFloat(latest.temperature.max.value) : null,
-        D: latest.dew_point?.current ? parseFloat(latest.dew_point.current) : null,
-        H: latest.humidity?.current ? parseFloat(latest.humidity.current) : null,
-        V: latest.wind?.avg_speed_kmh?.current ? parseFloat(latest.wind.avg_speed_kmh.current) : null,
-        G: latest.wind?.gust_speed_kmh?.current ? parseFloat(latest.wind.gust_speed_kmh.current) : null,
-        R: latest.rain?.intensity?.current ? parseFloat(latest.rain.intensity.current) : null,
-        RR: 0, // non disponibile
-        LAT: st.lat,
-        LON: st.lon,
-        time: latest.system?.timestamp || timestamp
+        N: stName,
+        T: latest?.temperature?.current ? parseFloat(latest.temperature.current) : null,
+        TL: latest?.temperature?.min?.value ? parseFloat(latest.temperature.min.value) : null,
+        TH: latest?.temperature?.max?.value ? parseFloat(latest.temperature.max.value) : null,
+        H: latest?.humidity?.current ? parseFloat(latest.humidity.current) : null,
+        LAT: stationsDMA[stName].lat,
+        LON: stationsDMA[stName].lon,
+        time: latest?.system?.timestamp || timestamp
       };
 
       lines.push(JSON.stringify(obj));
@@ -418,11 +421,13 @@ app.get('/datimeteoasti.json', async (req, res) => {
 
     res.setHeader("Content-Type", "application/json");
     res.send(lines.join("\n"));
+
   } catch (err) {
     console.error("Errore fetch DMA:", err);
     res.status(500).json({ error: err.message });
   }
 });
+
 
 
 
