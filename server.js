@@ -497,14 +497,17 @@ const stationsLIMET = {
 
 app.get('/limet.json', async (req, res) => {
   try {
+    // Prima riga: timestamp globale
     const timestamp = new Date().toISOString();
     const lines = [JSON.stringify({ timestamp })];
 
+    // Itera sulle stazioni LIMET
     for (const [name, st] of Object.entries(stationsLIMET)) {
       const url = `https://retelimet.centrometeoligure.it/stazioni/${st.link}/data/cu/realtimegauges.txt`;
       try {
         const response = await fetch(url);
         if (!response.ok) {
+          // stazione offline
           lines.push(JSON.stringify({ S: "1", N: name }));
           continue;
         }
@@ -524,8 +527,8 @@ app.get('/limet.json', async (req, res) => {
           R: parseFloat(data.rfall.replace(",", ".")),
           RR: parseFloat(data.rrate.replace(",", ".")),
           LAT: st.lat,
-          LON: st.lon,
-          time: data.timeUTC
+          LON: st.lon
+          // NOTA: non mettiamo 'time' qui
         };
 
         lines.push(JSON.stringify(obj));
@@ -541,7 +544,6 @@ app.get('/limet.json', async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
-
 
 // --- Avvio server ---
 app.listen(port, () => console.log(`Server in ascolto su http://localhost:${port}`));
