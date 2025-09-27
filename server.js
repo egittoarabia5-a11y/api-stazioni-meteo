@@ -191,23 +191,23 @@ app.get('/torinometeo.json', async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
-// --- Endpoint Meteo3R ---
-app.get('/meteo3r.json', async (req, res) => {
+
+// --- Cache Meteo3R ---
+let meteo3rCache = null;
+
+async function updateMeteo3R() {
   try {
     const url = "https://www.meteo3r.it/dati/mappe/misure.geojson";
-  
-
     const response = await fetch(url);
     if (!response.ok) throw new Error("HTTP " + response.status);
 
     const geojson = await response.json();
-
     if (!geojson.features || !Array.isArray(geojson.features)) {
-      return res.status(500).json({ error: "Formato GeoJSON inatteso" });
+      throw new Error("Formato GeoJSON inatteso");
     }
 
     const timestamp = new Date().toISOString();
-    const lines = [JSON.stringify({ timestamp })]; // prima riga: timestamp
+    const lines = [JSON.stringify({ timestamp })];
 
     geojson.features.forEach(st => {
       const id = st.properties.IDRETE_CODSTAZ;
@@ -216,7 +216,6 @@ app.get('/meteo3r.json', async (req, res) => {
       const lat = parseFloat(st.geometry.coordinates[1]);
       const lon = parseFloat(st.geometry.coordinates[0]);
 
-      // parsing sicuro dei valori
       const temp = st.properties.T !== "" ? parseFloat(st.properties.T) : null;
       const tempHigh = st.properties.T_MAX !== "" ? parseFloat(st.properties.T_MAX) : null;
       const tempLow = st.properties.T_MIN !== "" ? parseFloat(st.properties.T_MIN) : null;
@@ -245,15 +244,25 @@ app.get('/meteo3r.json', async (req, res) => {
       lines.push(JSON.stringify(obj));
     });
 
-    res.setHeader("Content-Type", "application/json");
-    res.send(lines.join("\n"));
-
+    meteo3rCache = lines.join("\n");
+    console.log("Meteo3R aggiornato", timestamp);
   } catch (err) {
-    console.error("Errore fetch Meteo3R:", err);
-    res.status(500).json({ error: err.message });
+    console.error("Errore aggiornamento Meteo3R:", err);
   }
-});
+}
 
+// Aggiorna subito e poi ogni 5 minuti
+updateMeteo3R();
+setInterval(updateMeteo3R, 5 * 60 * 1000);
+
+// --- Endpoint Meteo3R ---
+app.get('/meteo3r.json', (req, res) => {
+  if (!meteo3rCache) {
+    return res.status(500).json({ error: "Dati Meteo3R non ancora disponibili" });
+  }
+  res.setHeader("Content-Type", "application/json");
+  res.send(meteo3rCache);
+});
 
 // --- Serve HTML ---
 app.use(express.static('public'));
