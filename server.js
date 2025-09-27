@@ -260,7 +260,10 @@ app.get('/meteo3r.json', async (req, res) => {
   }
 });
 
-// --- Nuovo endpoint LIMET ---
+
+const fetch = require('node-fetch');
+
+let limetCache = [];
 const stationsLIMET = {
   Molassana: {
     link: "terzereti",
@@ -494,27 +497,24 @@ const stationsLIMET = {
   }
 };
 
-
-app.get('/limet.json', async (req, res) => {
+// Funzione per aggiornare la cache
+async function updateLimetCache() {
   try {
-    // Prima riga: timestamp globale
     const timestamp = new Date().toISOString();
     const lines = [JSON.stringify({ timestamp })];
 
-    // Itera sulle stazioni LIMET
     for (const [name, st] of Object.entries(stationsLIMET)) {
-      const url = `https://retelimet.centrometeoligure.it/stazioni/${st.link}/data/cu/realtimegauges.txt`;
       try {
+        const url = `https://retelimet.centrometeoligure.it/stazioni/${st.link}/data/cu/realtimegauges.txt`;
         const response = await fetch(url);
         if (!response.ok) {
-          // stazione offline
           lines.push(JSON.stringify({ S: "1", N: name }));
           continue;
         }
 
         const data = await response.json();
 
-        const obj = {
+        lines.push(JSON.stringify({
           S: "0",
           N: name,
           T: parseFloat(data.temp.replace(",", ".")),
@@ -528,22 +528,29 @@ app.get('/limet.json', async (req, res) => {
           RR: parseFloat(data.rrate.replace(",", ".")),
           LAT: st.lat,
           LON: st.lon
-          // NOTA: non mettiamo 'time' qui
-        };
-
-        lines.push(JSON.stringify(obj));
+        }));
       } catch (err) {
         lines.push(JSON.stringify({ S: "1", N: name }));
       }
     }
 
-    res.setHeader("Content-Type", "application/json");
-    res.send(lines.join("\n"));
+    limetCache = lines.join("\n");
+    console.log("Cache LIMET aggiornata:", new Date().toLocaleTimeString());
   } catch (err) {
-    console.error("Errore fetch LIMET:", err);
-    res.status(500).json({ error: err.message });
+    console.error("Errore aggiornamento LIMET:", err);
   }
+}
+
+// Aggiorna subito e poi ogni 10 secondi
+updateLimetCache();
+setInterval(updateLimetCache, 10000);
+
+// Endpoint
+app.get('/limet.json', (req, res) => {
+  res.setHeader("Content-Type", "application/json");
+  res.send(limetCache);
 });
+
 
 // --- Avvio server ---
 app.listen(port, () => console.log(`Server in ascolto su http://localhost:${port}`));
