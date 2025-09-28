@@ -558,7 +558,7 @@ app.get('/datimeteoasti.json', async (req, res) => {
     const lines = [JSON.stringify({ timestamp })];
 
     for (const stName in stationsDMA) {
-      const url = `https://maps.datimeteoasti.it/api/stationDataTrend/${link.toLowerCase()}`;
+      const url = `https://maps.datimeteoasti.it/weather-station/data/${station.link}`;
       const response = await fetch(url);
       if (!response.ok) {
         lines.push(JSON.stringify({ S: "1", N: stName }));
