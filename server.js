@@ -559,7 +559,7 @@ app.get('/datimeteoasti.json', async (req, res) => {
 
     for (const stName in stationsDMA) {
       const station = stationsDMA[stName];
-      const url = `https://maps.datimeteoasti.it/weather-station/data/${station.link}`;
+      const url = `https://maps.datimeteoasti.it/api/stationDataTrend/${station.link}`;
 
       const response = await fetch(url);
       if (!response.ok) {
