@@ -428,7 +428,7 @@ const stationsDMA = {
   Ceva: { lat: 44.386, lon: 8.030, link: "ceva" },
   TettoCaban: { lat: 44.285, lon: 7.656, link: "chiusa-di-pesio" },
   Mondovi: { lat: 44.368, lon: 7.803, link: "mondovi" },
-  MondoviSanGiacomo: { lat: 44.410, lon: 8.807, link: "mondovi-san-giacomo-delle-passere" },
+  MondoviSanGiacomo: { lat: 44.410, lon: 7.807, link: "mondovi-san-giacomo-delle-passere" },
   Dogliani: { lat: 44.511, lon: 7.962, link: "B8:D8:12:66:BD:3D" },
   Roddino: { lat: 44.544, lon: 7.996, link: "B8:D8:12:60:59:24" },
   Badarina: { lat: 44.594, lon: 8.004, link: "B8:D8:12:66:C6:4D" },
@@ -471,7 +471,7 @@ const stationsDMA = {
   CasaleMonferrato: { lat: 45.138, lon: 8.461, link: "casale-monferrato" },
   Camino: { lat: 5.167, lon: 8.289, link: "E8:DB:84:9A:07:B8" },
   Fabiano: { lat: 45.136, lon: 8.288, link: "B8:D8:12:66:BC:E5" },
-  Solonghello: { lat: 44.128, lon: 8.283, link: "solonghello" },
+  Solonghello: { lat: 45.128, lon: 8.283, link: "solonghello" },
   SettimeMeridiana: { lat: 44.965, lon: 8.129, link: "settime" },
   Settime: { lat: 44.963, lon: 8.113, link: "B8:D8:12:60:58:BB" },
   Castellero: { lat: 44.928, lon: 8.067, link: "castellero" },
@@ -494,7 +494,7 @@ const stationsDMA = {
   Dronero: { lat: 44.483, lon: 7.383, link: "villar-san-costanzo" },
   Revello: { lat: 44.647, lon: 7.389, link: "B8:D8:12:66:BD:A1" },
   Argentera: { lat: 44.377, lon: 6.970, link: "argentera" },
-  Prazzo: { lat: 45.521, lon: 7.060, link: "B8:D8:12:66:CE:3D" },
+  Prazzo: { lat: 44.521, lon: 7.060, link: "B8:D8:12:66:CE:3D" },
   Rucas: { lat: 44.753, lon: 7.207, link: "98:DA:C4:28:5E:6A" },
   VillarPellice: { lat: 44.807, lon: 7.143, link: "C4:93:00:09:76:8B" },
   TorrePellice: { lat: 44.819, lon: 7.214, link: "F4:F2:6D:6C:BC:70" },
@@ -558,7 +558,7 @@ app.get('/datimeteoasti.json', async (req, res) => {
     const lines = [JSON.stringify({ timestamp })];
 
     for (const stName in stationsDMA) {
-      const url = `https://maps.datimeteoasti.it/api/stationDataTrend/${stName.toLowerCase()}`;
+      const url = `https://maps.datimeteoasti.it/api/stationDataTrend/${link.toLowerCase()}`;
       const response = await fetch(url);
       if (!response.ok) {
         lines.push(JSON.stringify({ S: "1", N: stName }));
