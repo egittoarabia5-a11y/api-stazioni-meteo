@@ -521,6 +521,35 @@ const stationsDMA = {
   Nole: { lat: 45.240, lon: 7.567, link: "98:DA:C4:84:B6:60" },
   Ceretti: { lat: 45.273, lon: 7.630, link: "front" },
   RivaroloCanavese: { lat: 45.288, lon: 7.703, link: "oglianico-sfb" },
+  Cantoira: { lat: 45.342, lon: 7.381, link: "cantoria" },
+  FornoAlpi: { lat: 45.364, lon: 7.224, link: "groscavallo" },
+  Ceresole: { lat: 45.430, lon: 7.247, link: "ceresole-reale" },
+  Alpette: { lat: 45.408, lon: 7.578, link: "alpette" },
+  Parella: { lat: 45.430, lon: 7.795, link: "parella" },
+  Roppolo: { lat: 45.419, lon: 8.060, link: "roppolo" },
+  Chiaverano: { lat: 45.503, lon: 7.892, link: "chiaverano-montresco" },
+  SettimoVittone: { lat: 45.547, lon: 7.830, link: "settimo-vittone" },
+  Trovinasse: { lat: 45.576, lon: 7.855, link: "settimo-vittone-trovinasse" },
+  Muzzano: { lat: 45.560, lon: 7.989, link: "74:DA:88:D7:B2:37" },
+  OcchieppoSuperiore: { lat: 45.562, lon: 8.008, link: "occhieppo-superiore" },
+  Ponderano: { lat: 45.536, lon: 8.052, link: "ponderano" },
+  Candelo: { lat: 45.542, lon: 8.103, link: "candelo" },
+  Curino: { lat: 45.641, lon: 8.243, link: "curino" },
+  AlpeDiMera: { lat: 45.746, lon: 8.049, link: "scopello-alpe-di-mera" },
+  Scopa: { lat: 45.796, lon: 8.116, link: "scopa-muro-valsesia" },
+  Alagna: { lat: 45.836, lon: 7.950, link: "94:A4:08:E8:B7:C1" },
+  Macugnaga: { lat: 45.966, lon: 7.923, link: "macugnaga-ghiacciaio-belvedere" },
+  Acquamorta: { lat: 46.144, lon: 8.196, link: "bognanco-acquamorta" },
+  Devero: { lat: 46.333, lon: 8.284, link: "alpe-devero" },
+  Domodossola: { lat: 46.108, lon: 8.290, link: "domodossola-monte-calvario" },
+  Cannobio: { lat: 46.064, lon: 8.699, link: "cannobio" },
+  Ornavasso: { lat: 45.970, lon: 8.413, link: "ornavasso" },
+  GravellonaToce: { lat: 45.921, lon: 8.435, link: "gravellona-toce" },
+  Baveno: { lat: 45.906, lon: 8.506, link: "baveno" },
+  Belgirate: { lat: 45.838, lon: 8.571, link: "belgirate" },
+  SanGiacomoVercellese: { lat: 45.499, lon: 8.332, link: "san-giacomo-vercellese" },
+  Cameri: { lat: 45.512, lon: 8.644, link: "cameri" },
+  Novara: { lat: 45.433, lon: 8.612, link: "novara" },
 };
 
 app.get('/datimeteoasti.json', async (req, res) => {
@@ -529,8 +558,7 @@ app.get('/datimeteoasti.json', async (req, res) => {
     const lines = [JSON.stringify({ timestamp })];
 
     for (const stName in stationsDMA) {
-      const station = stationsDMA[stName];
-      const url = `https://maps.datimeteoasti.it/api/stationDataTrend/${station.link}`;
+      const url = `https://maps.datimeteoasti.it/api/stationDataTrend/${stName.toLowerCase()}`;
       const response = await fetch(url);
       if (!response.ok) {
         lines.push(JSON.stringify({ S: "1", N: stName }));
@@ -538,27 +566,56 @@ app.get('/datimeteoasti.json', async (req, res) => {
       }
 
       const data = await response.json();
+      const s = data.series || {};
 
-      // prendi l'ultimo valore di ogni serie
-      const temperatureSeries = data.series.temperature || [];
-      const humiditySeries = data.series.humidity || [];
-      const dewSeries = data.series.dew_point || [];
+      // Prende l'ultimo valore disponibile da ciascuna serie
+      const getLastValue = (arr) =>
+        Array.isArray(arr) && arr.length
+          ? parseFloat(arr[arr.length - 1].value)
+          : null;
 
-      const latestTemp = temperatureSeries.length ? parseFloat(temperatureSeries[temperatureSeries.length - 1].value) : null;
-      const latestHum = humiditySeries.length ? parseFloat(humiditySeries[humiditySeries.length - 1].value) : null;
-      const latestDew = dewSeries.length ? parseFloat(dewSeries[dewSeries.length - 1].value) : null;
+      const getLastTimestamp = (arr) =>
+        Array.isArray(arr) && arr.length
+          ? arr[arr.length - 1].timestamp
+          : null;
+
+      const latestTemp = getLastValue(s.temperature);
+      const latestHum = getLastValue(s.humidity);
+      const latestDew = getLastValue(s.dew_point);
+      const latestPres = getLastValue(s.pressure);
+      const latestWind = getLastValue(s.wind_speed);
+      const latestGust = getLastValue(s.wind_gust);
+      const latestRain = getLastValue(s.rain_today);
+      const latestRate = getLastValue(s.rain_rate);
+
+      // Timestamp più recente disponibile
+      const lastTime =
+        getLastTimestamp(s.temperature) ||
+        getLastTimestamp(s.humidity) ||
+        getLastTimestamp(s.pressure) ||
+        timestamp;
+
+      // Formattazione con 1 decimale obbligatorio se .0
+      const fmt = (val) =>
+        val == null || isNaN(val)
+          ? null
+          : (val % 1 === 0 ? val.toFixed(1) : val);
 
       const obj = {
-        S: latestTemp == null && latestHum == null ? "1" : "0",
+        S: "0",
         N: stName,
-        link: station.link, // aggiunto link
-        T: latestTemp != null ? latestTemp.toFixed(1) : null,
-        TL: temperatureSeries.length ? parseFloat(temperatureSeries[0].value).toFixed(1) : null, // min storico
-        TH: latestTemp != null ? latestTemp.toFixed(1) : null, // max attuale uguale all'ultimo
-        H: latestHum != null ? latestHum.toFixed(1) : null,
-        D: latestDew != null ? latestDew.toFixed(1) : null,
-        LAT: station.lat,
-        LON: station.lon
+        T: fmt(latestTemp),
+        H: fmt(latestHum),
+        D: fmt(latestDew),
+        P: fmt(latestPres),
+        V: fmt(latestWind),
+        G: fmt(latestGust),
+        R: fmt(latestRain),
+        RR: fmt(latestRate),
+        LAT: stationsDMA[stName].lat,
+        LON: stationsDMA[stName].lon,
+        link: url,
+        time: lastTime
       };
 
       lines.push(JSON.stringify(obj));
@@ -566,7 +623,6 @@ app.get('/datimeteoasti.json', async (req, res) => {
 
     res.setHeader("Content-Type", "application/json");
     res.send(lines.join("\n"));
-
   } catch (err) {
     console.error("Errore fetch DMA:", err);
     res.status(500).json({ error: err.message });
