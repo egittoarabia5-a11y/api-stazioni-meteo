@@ -614,8 +614,6 @@ app.get('/datimeteoasti.json', async (req, res) => {
         RR: fmt(latestRate),
         LAT: stationsDMA[stName].lat,
         LON: stationsDMA[stName].lon,
-        link: url,
-        time: lastTime
       };
 
       lines.push(JSON.stringify(obj));
