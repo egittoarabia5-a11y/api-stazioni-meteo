@@ -369,6 +369,53 @@ app.get('/limet.json', async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+app.get('/limet/:id.json', async (req, res) => {
+  try {
+    const id = req.params.id;
+    const st = stationsLIMET[id];
+
+    if (!st) {
+      return res.status(404).json({ error: `Stazione ${id} non trovata` });
+    }
+
+    const timestamp = new Date().toISOString();
+    const url = `https://retelimet.centrometeoligure.it/stazioni/${st.link}/data/cu/realtimegauges.txt`;
+
+    try {
+      const response = await fetch(url);
+      if (!response.ok) {
+        return res.send(JSON.stringify({ S: "1", N: id }));
+      }
+
+      const data = await response.json();
+      const obj = {
+        S: "0",
+        N: id,
+        T: parseFloat(data.temp.replace(",", ".")),
+        TL: parseFloat(data.tempTL.replace(",", ".")),
+        TH: parseFloat(data.tempTH.replace(",", ".")),
+        D: parseFloat(data.dew.replace(",", ".")),
+        H: parseFloat(data.hum),
+        V: parseFloat(data.wspeed.replace(",", ".")),
+        G: parseFloat(data.wgust.replace(",", ".")),
+        R: parseFloat(data.rfall.replace(",", ".")),
+        RR: parseFloat(data.rrate.replace(",", ".")),
+        LAT: st.lat,
+        LON: st.lon
+      };
+
+      res.setHeader("Content-Type", "application/json");
+      res.send(JSON.stringify({ timestamp, ...obj }));
+
+    } catch (err) {
+      res.send(JSON.stringify({ S: "1", N: id }));
+    }
+
+  } catch (err) {
+    console.error("Errore fetch LIMET singola stazione:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
 // --- Nuovo endpoint DMA ---
 const stationsDMA = {
   Capriglio: { lat: 45.013, lon: 8.023, link: "capriglio" },
