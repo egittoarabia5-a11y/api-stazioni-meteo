@@ -416,64 +416,6 @@ app.get('/limet/:id.json', async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
-import fs from 'fs';
-import path from 'path';
-
-// --- Cartella dove generare le pagine LIMET ---
-const stationDir = path.join('./station/limet');
-if (!fs.existsSync(stationDir)) fs.mkdirSync(stationDir, { recursive: true });
-
-// --- Funzione per generare le pagine per ogni stazione LIMET ---
-async function generateLimetStationFiles() {
-  try {
-    // Usa un template HTML generico (puoi crearne uno come station.html)
-    const templatePath = './station.html';
-    if (!fs.existsSync(templatePath)) {
-      console.warn('Template station.html non trovato, crealo nella root del progetto.');
-      return;
-    }
-
-    const htmlTemplate = fs.readFileSync(templatePath, 'utf8');
-
-    for (const id of Object.keys(stationsLIMET)) {
-      const outputPath = path.join(stationDir, `${id}.html`);
-
-      // Se il file esiste già, non lo rigenera
-      if (fs.existsSync(outputPath)) continue;
-
-      // Sostituisci nel template la riga di default che prende l'id dall'URL
-      const customizedHtml = htmlTemplate.replace(
-        /const stationId = fileName\.replace\('.html',''\);/,
-        `const stationId = '${id}';`
-      );
-
-      fs.writeFileSync(outputPath, customizedHtml);
-      console.log(`Creato: /station/limet/${id}.html`);
-    }
-
-    console.log('Generazione stazioni LIMET completata.');
-  } catch (err) {
-    console.error('Errore generazione stazioni LIMET:', err);
-  }
-}
-
-// Genera i file all’avvio del server
-generateLimetStationFiles();
-
-// --- Endpoint opzionale per aggiornare manualmente tutte le pagine LIMET ---
-app.get('/update-limet-stations', async (req, res) => {
-  try {
-    // Elimina vecchi file
-    if (fs.existsSync(stationDir)) fs.rmSync(stationDir, { recursive: true, force: true });
-    fs.mkdirSync(stationDir, { recursive: true });
-
-    await generateLimetStationFiles();
-    res.send('Stazioni LIMET aggiornate!');
-  } catch (e) {
-    console.error(e);
-    res.status(500).send('Errore aggiornamento stazioni LIMET');
-  }
-});
 
 // --- Nuovo endpoint DMA ---
 const stationsDMA = {
