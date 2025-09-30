@@ -369,6 +369,8 @@ app.get('/limet.json', async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+app.use(express.static("public")); // eventuali file statici
+
 app.get("/station/limet/:id.html", async (req, res) => {
   const id = req.params.id;
 
