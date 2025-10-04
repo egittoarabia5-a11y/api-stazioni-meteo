@@ -405,6 +405,7 @@ app.get('/limet/:id.json', async (req, res) => {
         PH: parseFloat(data.pressTH.replace(",", ".")),
         PL: parseFloat(data.pressTL.replace(",", ".")),
         V: parseFloat(data.wspeed.replace(",", ".")),
+        VH: parseFloat(data.wgustTM.replace(",", ".")),
         G: parseFloat(data.wgust.replace(",", ".")),
         R: parseFloat(data.rfall.replace(",", ".")),
         RR: parseFloat(data.rrate.replace(",", ".")),
@@ -428,7 +429,32 @@ app.get('/limet/:id.json', async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+// Helper per ottenere il path del file daily
+function getDailyFilePath(stationId) {
+  const dir = path.join(process.cwd(), "DailyData", "limet");
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+  return path.join(dir, `${stationId}.json`);
+}
 
+// Endpoint per fornire i dati storici della temperatura
+app.get("/DailyData/limet/:id.json", async (req, res) => {
+  const stationId = req.params.id;
+  const filePath = getDailyFilePath(stationId);
+
+  if (!fs.existsSync(filePath)) {
+    return res.status(404).json({ error: `File daily per la stazione ${stationId} non trovato` });
+  }
+
+  try {
+    const raw = fs.readFileSync(filePath, "utf8");
+    const jsonData = JSON.parse(raw);
+    res.setHeader("Content-Type", "application/json");
+    res.send(jsonData);
+  } catch (err) {
+    console.error("Errore lettura file daily:", err);
+    res.status(500).json({ error: "Errore lettura file daily" });
+  }
+});
 // --- Nuovo endpoint DMA ---
 const stationsDMA = {
   Capriglio: { lat: 45.013, lon: 8.023, link: "capriglio" },
