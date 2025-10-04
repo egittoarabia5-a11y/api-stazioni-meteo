@@ -369,7 +369,7 @@ app.get('/limet.json', async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
-
+ 
 app.get('/limet/:id.json', async (req, res) => {
   try {
     const id = req.params.id;
@@ -396,11 +396,26 @@ app.get('/limet/:id.json', async (req, res) => {
         TL: parseFloat(data.tempTL.replace(",", ".")),
         TH: parseFloat(data.tempTH.replace(",", ".")),
         D: parseFloat(data.dew.replace(",", ".")),
+        DH: parseFloat(data.dewpointTH.replace(",", ".")),
+        DL: parseFloat(data.dewpointTL.replace(",", ".")),
         H: parseFloat(data.hum),
+        HH: parseFloat(data.humTH),
+        HL: parseFloat(data.humTL),
+        P: parseFloat(data.press.replace(",", ".")),
+        PH: parseFloat(data.pressTH.replace(",", ".")),
+        PL: parseFloat(data.pressTL.replace(",", ".")),
         V: parseFloat(data.wspeed.replace(",", ".")),
         G: parseFloat(data.wgust.replace(",", ".")),
         R: parseFloat(data.rfall.replace(",", ".")),
         RR: parseFloat(data.rrate.replace(",", ".")),
+        RRH: parseFloat(data.rrateTM.replace(",", ".")),
+        B: parseFloat(data.bearing.replace(",", ".")),
+        HI: parseFloat(data.heatindex.replace(",", ".")),
+        HIH: parseFloat(data.heatindexTH.replace(",", ".")),
+        UV: parseFloat(data.UV.replace(",", ".")),
+        UVH: parseFloat(data.UVTH.replace(",", ".")),
+        S: parseFloat(data.SolarRad.replace(",", ".")),
+        SH: parseFloat(data.SolarTH.replace(",", ".")),
         LAT: st.lat,
         LON: st.lon
       };
