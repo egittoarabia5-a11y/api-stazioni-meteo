@@ -408,6 +408,8 @@ app.get('/limet/:id.json', async (req, res) => {
         G: parseFloat(data.wgust.replace(",", ".")),
         R: parseFloat(data.rfall.replace(",", ".")),
         RR: parseFloat(data.rrate.replace(",", ".")),
+        HI: parseFloat(data.heatindex.replace(",", ".")),
+        HIH: parseFloat(data.heatindexTH.replace(",", ".")),
         LAT: st.lat,
         LON: st.lon
       };
