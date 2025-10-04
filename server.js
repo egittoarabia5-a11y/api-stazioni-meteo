@@ -429,72 +429,159 @@ app.get('/limet/:id.json', async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
-// Helper per ottenere il path del file daily
-const fs = require("fs");
-const path = require("path");
-const fetch = require("node-fetch");
 
-// Cache in memoria dei daily data
-const dailyCache = {}; // chiave = stationId, valore = array di { timestamp, T }
 
-// Numero massimo di record (144 per 24h ogni 10 minuti)
-const MAX_RECORDS = 144;
+const dailyCache = {}; // { stationId: [{timestamp, T}, ...] }
+const MAX_RECORDS = 144; // 24h * 6 (ogni 10 minuti)
 
-// Funzione per aggiornare il daily data di una stazione
-async function updateDailyData(stationId) {
-  const st = stationsLIMET[stationId];
-  if (!st) return;
+// helper: path file daily (opzionale persistenza su disco)
+function getDailyFilePath(stationId) {
+  const dir = path.join(process.cwd(), "DailyData", "limet");
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+  return path.join(dir, `${stationId}.json`);
+}
 
+// carica file su memoria all'avvio se vuoi persistenza (opzionale)
+function loadDailyFromDiskIfExists(stationId) {
+  const p = getDailyFilePath(stationId);
+  if (fs.existsSync(p)) {
+    try {
+      const raw = fs.readFileSync(p, "utf8");
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed.data)) {
+        dailyCache[stationId] = parsed.data.slice(-MAX_RECORDS);
+        return;
+      }
+    } catch (err) {
+      console.warn(`Warning: non ho potuto caricare ${p}:`, err.message);
+    }
+  }
+  dailyCache[stationId] = []; // vuoto se nulla
+}
+
+// salva su disco la struttura (opzionale)
+function persistDailyToDisk(stationId) {
+  try {
+    const p = getDailyFilePath(stationId);
+    const payload = { station: stationId, data: dailyCache[stationId] || [] };
+    fs.writeFileSync(p, JSON.stringify(payload, null, 2), "utf8");
+  } catch (err) {
+    console.error(`Errore persistenza ${stationId}:`, err.message);
+  }
+}
+
+// funzione che prova a estrarre la temperatura dal JSON remoto in modo sicuro
+async function fetchRealtimeTemp(st) {
   const url = `https://retelimet.centrometeoligure.it/stazioni/${st.link}/data/cu/realtimegauges.txt`;
   try {
-    const res = await fetch(url);
-    if (!res.ok) throw new Error("Errore fetch dati LIMET");
-    const data = await res.json();
-    const temp = parseFloat(data.temp.replace(",", "."));
+    const res = await fetch(url, { timeout: 10000 }); // timeout se supported
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const json = await res.json();
+    // protezione contro formati strani
+    const tempRaw = (json && (json.temp ?? json.T)) || null;
+    if (tempRaw === null || typeof tempRaw === "undefined") throw new Error("temp mancante");
+    // replace virgola e parse
+    const t = parseFloat(String(tempRaw).replace(",", "."));
+    if (isNaN(t)) throw new Error("temp non numerica");
+    return t;
+  } catch (err) {
+    // non rilanciare: caller gestisce fallimenti (evitiamo crash)
+    console.warn(`fetchRealtimeTemp fallita per ${st.link}:`, err.message);
+    return null;
+  }
+}
 
-    if (!dailyCache[stationId]) dailyCache[stationId] = [];
+// aggiorna in memoria il daily data per una singola stazione
+async function updateDailyForStation(stationId) {
+  try {
+    const st = stationsLIMET[stationId];
+    if (!st) {
+      console.warn(`Stazione non trovata: ${stationId}`);
+      return;
+    }
+
+    const temp = await fetchRealtimeTemp(st);
+    if (temp === null) {
+      // niente da aggiungere se fetch fallito
+      return;
+    }
+
+    if (!Array.isArray(dailyCache[stationId])) dailyCache[stationId] = [];
 
     const now = new Date().toISOString();
-    dailyCache[stationId].push({ timestamp: now, T: temp });
 
-    // Mantieni massimo MAX_RECORDS elementi
-    if (dailyCache[stationId].length > MAX_RECORDS) {
+    // aggiungi nuovo punto
+    dailyCache[stationId].push({ timestamp: now, T: parseFloat(temp.toFixed(1)) });
+
+    // taglia a MAX_RECORDS (rimuovi i più vecchi)
+    while (dailyCache[stationId].length > MAX_RECORDS) {
       dailyCache[stationId].shift();
     }
 
+    // persisti su disco (opzionale — commenta se non vuoi file I/O)
+    persistDailyToDisk(stationId);
+
+    console.log(`[${now}] daily updated ${stationId}: T=${temp}`);
   } catch (err) {
-    console.error(`Errore aggiornamento daily data per ${stationId}:`, err);
+    // protezione generale: loggare ma non crashare
+    console.error(`Errore updateDailyForStation ${stationId}:`, err && err.stack ? err.stack : err);
   }
 }
 
-// Avvio timer: primo aggiornamento al prossimo multiplo di 10 minuti
-function scheduleDailyUpdates() {
-  for (const stationId in stationsLIMET) {
-    const now = new Date();
-    const next = new Date(now);
-    next.setMinutes(Math.ceil(now.getMinutes() / 10) * 10, 0, 0); // prossimo multiplo di 10 min
-    const delay = next - now;
-
-    setTimeout(() => {
-      // Primo aggiornamento
-      updateDailyData(stationId);
-
-      // Poi ogni 10 minuti
-      setInterval(() => updateDailyData(stationId), 10 * 60 * 1000);
-    }, delay);
-  }
+// funzione che aggiorna tutte le stazioni
+async function updateAllStations() {
+  // esegui in serie o in parallelo? uso parallelo ma limitato per sicurezza:
+  const stationIds = Object.keys(stationsLIMET);
+  // aggiorniamo in parallelo con Promise.allSettled per evitare che una rejection blocchi tutto
+  const promises = stationIds.map(id => updateDailyForStation(id));
+  await Promise.allSettled(promises);
 }
 
-// Endpoint DailyData
+// inizializza cache all'avvio (opzionale: caricare da file persistenza)
+for (const id of Object.keys(stationsLIMET)) {
+  loadDailyFromDiskIfExists(id);
+}
+
+// Calcola ritardo fino al prossimo multiplo di 10 minuti (es. hh:00, hh:10, hh:20 ...)
+function msUntilNext10Min() {
+  const now = new Date();
+  const minutes = now.getMinutes();
+  const nextMultiple = Math.ceil((minutes + 0.000001) / 10) * 10; // evita edge-case
+  const next = new Date(now);
+  next.setMinutes(nextMultiple);
+  next.setSeconds(0);
+  next.setMilliseconds(0);
+  // se next è <= now (può succedere quando minutes è esattamente multiple per float), aggiungi 10
+  if (next <= now) {
+    next.setMinutes(next.getMinutes() + 10);
+  }
+  return next - now;
+}
+
+// schedule: primo avvio al prossimo multiplo di 10 min, poi ogni 10 min in background
+(function scheduleBackgroundUpdates() {
+  const initialDelay = msUntilNext10Min();
+  console.log(`Primo update tra ${Math.round(initialDelay/1000)}s (prossimo boundary 10min).`);
+  setTimeout(async () => {
+    // primo update subito quando scatta il timeout
+    await updateAllStations();
+
+    // poi timer ricorrente ogni 10 minuti
+    setInterval(async () => {
+      await updateAllStations();
+    }, 10 * 60 * 1000);
+
+  }, initialDelay);
+})();
+
+// Endpoint che serve i daily da cache (veloce, serve la struttura con .data per compatibilità)
 app.get("/DailyData/limet/:id.json", (req, res) => {
   const stationId = req.params.id;
-  const data = dailyCache[stationId] || [];
+  const arr = dailyCache[stationId] || [];
+  // risposta compatta: { station: id, data: [...] } per compatibilità col file persistente
   res.setHeader("Content-Type", "application/json");
-  res.send(JSON.stringify(data));
+  res.send(JSON.stringify({ station: stationId, data: arr }));
 });
-
-// Avvia aggiornamenti automatici
-scheduleDailyUpdates();
 // --- Nuovo endpoint DMA ---
 const stationsDMA = {
   Capriglio: { lat: 45.013, lon: 8.023, link: "capriglio" },
