@@ -430,31 +430,71 @@ app.get('/limet/:id.json', async (req, res) => {
   }
 });
 // Helper per ottenere il path del file daily
-function getDailyFilePath(stationId) {
-  const dir = path.join(process.cwd(), "DailyData", "limet");
-  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-  return path.join(dir, `${stationId}.json`);
+const fs = require("fs");
+const path = require("path");
+const fetch = require("node-fetch");
+
+// Cache in memoria dei daily data
+const dailyCache = {}; // chiave = stationId, valore = array di { timestamp, T }
+
+// Numero massimo di record (144 per 24h ogni 10 minuti)
+const MAX_RECORDS = 144;
+
+// Funzione per aggiornare il daily data di una stazione
+async function updateDailyData(stationId) {
+  const st = stationsLIMET[stationId];
+  if (!st) return;
+
+  const url = `https://retelimet.centrometeoligure.it/stazioni/${st.link}/data/cu/realtimegauges.txt`;
+  try {
+    const res = await fetch(url);
+    if (!res.ok) throw new Error("Errore fetch dati LIMET");
+    const data = await res.json();
+    const temp = parseFloat(data.temp.replace(",", "."));
+
+    if (!dailyCache[stationId]) dailyCache[stationId] = [];
+
+    const now = new Date().toISOString();
+    dailyCache[stationId].push({ timestamp: now, T: temp });
+
+    // Mantieni massimo MAX_RECORDS elementi
+    if (dailyCache[stationId].length > MAX_RECORDS) {
+      dailyCache[stationId].shift();
+    }
+
+  } catch (err) {
+    console.error(`Errore aggiornamento daily data per ${stationId}:`, err);
+  }
 }
 
-// Endpoint per fornire i dati storici della temperatura
-app.get("/DailyData/limet/:id.json", async (req, res) => {
+// Avvio timer: primo aggiornamento al prossimo multiplo di 10 minuti
+function scheduleDailyUpdates() {
+  for (const stationId in stationsLIMET) {
+    const now = new Date();
+    const next = new Date(now);
+    next.setMinutes(Math.ceil(now.getMinutes() / 10) * 10, 0, 0); // prossimo multiplo di 10 min
+    const delay = next - now;
+
+    setTimeout(() => {
+      // Primo aggiornamento
+      updateDailyData(stationId);
+
+      // Poi ogni 10 minuti
+      setInterval(() => updateDailyData(stationId), 10 * 60 * 1000);
+    }, delay);
+  }
+}
+
+// Endpoint DailyData
+app.get("/DailyData/limet/:id.json", (req, res) => {
   const stationId = req.params.id;
-  const filePath = getDailyFilePath(stationId);
-
-  if (!fs.existsSync(filePath)) {
-    return res.status(404).json({ error: `File daily per la stazione ${stationId} non trovato` });
-  }
-
-  try {
-    const raw = fs.readFileSync(filePath, "utf8");
-    const jsonData = JSON.parse(raw);
-    res.setHeader("Content-Type", "application/json");
-    res.send(jsonData);
-  } catch (err) {
-    console.error("Errore lettura file daily:", err);
-    res.status(500).json({ error: "Errore lettura file daily" });
-  }
+  const data = dailyCache[stationId] || [];
+  res.setHeader("Content-Type", "application/json");
+  res.send(JSON.stringify(data));
 });
+
+// Avvia aggiornamenti automatici
+scheduleDailyUpdates();
 // --- Nuovo endpoint DMA ---
 const stationsDMA = {
   Capriglio: { lat: 45.013, lon: 8.023, link: "capriglio" },
