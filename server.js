@@ -430,8 +430,8 @@ app.get('/limet/:id.json', async (req, res) => {
   }
 });
 
-const dailyCache = {}; // { stationId: [{ timestamp, T }, ...] }
-const MAX_RECORDS = 144; // max elementi per stazione
+const dailyCache = {};
+const MAX_RECORDS = 144;
 
 // funzione per fetch temperatura
 async function fetchTemp(st) {
@@ -459,10 +459,8 @@ async function updateAllStations() {
 
     if (!dailyCache[id]) dailyCache[id] = [];
 
-    // aggiungi nuovo record
     dailyCache[id].push({ timestamp: new Date().toISOString(), T: temp });
 
-    // rimuovi il più vecchio se > MAX_RECORDS
     while (dailyCache[id].length > MAX_RECORDS) {
       dailyCache[id].shift();
     }
@@ -471,11 +469,21 @@ async function updateAllStations() {
   }
 }
 
-// scheduler: ogni 10 minuti
-setInterval(updateAllStations, 10 * 60 * 1000);
+// calcola ms fino al prossimo multiplo di 10 minuti
+function msToNextTenMinutes() {
+  const now = new Date();
+  const minutes = now.getMinutes();
+  const nextTen = Math.ceil(minutes / 10) * 10;
+  const diffMinutes = nextTen - minutes;
+  const diffMs = diffMinutes * 60 * 1000 - now.getSeconds() * 1000 - now.getMilliseconds();
+  return diffMs > 0 ? diffMs : 0;
+}
 
-// primo avvio subito
-updateAllStations();
+// primo update al prossimo multiplo di 10 minuti, poi ogni 10 minuti
+setTimeout(() => {
+  updateAllStations(); // primo update
+  setInterval(updateAllStations, 10 * 60 * 1000); // poi ogni 10 minuti
+}, msToNextTenMinutes());
 
 // endpoint per servire i dati daily
 app.get("/DailyData/limet/:id.json", (req, res) => {
@@ -484,6 +492,7 @@ app.get("/DailyData/limet/:id.json", (req, res) => {
   res.setHeader("Content-Type", "application/json");
   res.send(JSON.stringify({ station: id, data }));
 });
+
 
 // --- Nuovo endpoint DMA ---
 const stationsDMA = {
