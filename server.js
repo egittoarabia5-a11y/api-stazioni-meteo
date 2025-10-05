@@ -432,96 +432,76 @@ app.get('/limet/:id.json', async (req, res) => {
 
 const DATA_DIR = path.join(process.cwd(), "DailyData");
 
-// assicura che la cartella principale esista
-if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
+// Crea cartella principale se non esiste
+if (!fs.existsSync(DATA_DIR)) {
+  fs.mkdirSync(DATA_DIR, { recursive: true });
+  console.log("📂 Creata cartella DailyData");
+}
 
-// funzione per aggiornare i dati
+// Funzione: aggiorna o crea dati
 function updateDailyData(source, stationId) {
   const sourceDir = path.join(DATA_DIR, source);
-  if (!fs.existsSync(sourceDir)) fs.mkdirSync(sourceDir, { recursive: true });
+  if (!fs.existsSync(sourceDir)) {
+    fs.mkdirSync(sourceDir, { recursive: true });
+  }
 
   const filePath = path.join(sourceDir, `${stationId}.json`);
-
   let currentData = { station: stationId, data: [] };
 
-  // se il file esiste, leggilo
+  // Se esiste, leggi
   if (fs.existsSync(filePath)) {
     try {
-      currentData = JSON.parse(fs.readFileSync(filePath, "utf8"));
-      if (!Array.isArray(currentData.data)) currentData.data = [];
-    } catch {
-      console.warn("File JSON corrotto, rigenerato:", filePath);
+      const raw = fs.readFileSync(filePath, "utf8");
+      const parsed = JSON.parse(raw);
+      if (parsed && Array.isArray(parsed.data)) {
+        currentData = parsed;
+      }
+    } catch (err) {
+      console.warn("⚠️ Errore lettura file, rigenero:", filePath);
     }
   }
 
-  // genera temperatura casuale
+  // Genera valore casuale (simulazione temperatura)
   const newTemp = 10 + Math.random() * 10;
 
-  // aggiungi nuovo dato
-  currentData.data.push({
-    timestamp: new Date().toISOString(),
-    T: parseFloat(newTemp.toFixed(1)),
-  });
-
-  // se supera 144 punti (24h di dati a 10 min), rimuovi il più vecchio
-  if (currentData.data.length > 144) {
-    currentData.data.shift();
-  }
-
-  // salva
-  fs.writeFileSync(filePath, JSON.stringify(currentData, null, 2));
-}
-
-// aggiorna ogni 10 minuti ai minuti :00, :10, :20, ...
-function scheduleUpdates() {
+  // Aggiungi nuovo dato solo se è passato abbastanza tempo
   const now = new Date();
-  const next10 = new Date(now);
-  next10.setMinutes(Math.ceil(now.getMinutes() / 10) * 10, 0, 0);
-  const delay = next10 - now;
+  const last = currentData.data[currentData.data.length - 1];
+  const lastTime = last ? new Date(last.timestamp) : null;
+  const minutesSinceLast = lastTime
+    ? (now - lastTime) / 60000
+    : Infinity;
 
-  setTimeout(() => {
-    console.log("⏱️ Aggiornamento dati ogni 10 minuti...");
+  if (minutesSinceLast >= 10) {
+    currentData.data.push({
+      timestamp: now.toISOString(),
+      T: parseFloat(newTemp.toFixed(1)),
+    });
 
-    // qui puoi mettere tutte le stazioni che vuoi aggiornare
-    const SOURCES = {
-      limet: ["SantAlberto", "GenovaCentro", "Arenzano"],
-    };
-
-    for (const [source, stations] of Object.entries(SOURCES)) {
-      for (const station of stations) {
-        updateDailyData(source, station);
-      }
+    // Mantieni solo ultimi 144 punti
+    if (currentData.data.length > 144) {
+      currentData.data.shift();
     }
 
-    // dopo il primo aggiornamento, ripeti ogni 10 minuti
-    setInterval(() => {
-      for (const [source, stations] of Object.entries(SOURCES)) {
-        for (const station of stations) {
-          updateDailyData(source, station);
-        }
-      }
-    }, 10 * 60 * 1000);
-  }, delay);
+    fs.writeFileSync(filePath, JSON.stringify(currentData, null, 2));
+  }
+
+  return currentData;
 }
 
-scheduleUpdates();
-
-// endpoint: /DailyData/Source/Id
+// Endpoint: /DailyData/:source/:stationId
 app.get("/DailyData/:source/:stationId", (req, res) => {
   const { source, stationId } = req.params;
-  const filePath = path.join(DATA_DIR, source, `${stationId}.json`);
-
-  if (!fs.existsSync(filePath)) {
-    return res.status(404).json({ error: "File non trovato" });
-  }
 
   try {
-    const json = JSON.parse(fs.readFileSync(filePath, "utf8"));
+    const json = updateDailyData(source, stationId);
     res.json(json);
   } catch (err) {
-    res.status(500).json({ error: "Errore lettura JSON", details: err.message });
+    console.error("❌ Errore durante updateDailyData:", err);
+    res.status(500).json({ error: "Errore interno" });
   }
 });
+
 
 
 
