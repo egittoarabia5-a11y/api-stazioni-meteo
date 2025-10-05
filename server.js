@@ -432,75 +432,71 @@ app.get('/limet/:id.json', async (req, res) => {
 
 const DATA_DIR = path.join(process.cwd(), "DailyData");
 
-// Crea cartella principale se non esiste
-if (!fs.existsSync(DATA_DIR)) {
-  fs.mkdirSync(DATA_DIR, { recursive: true });
-  console.log("📂 Creata cartella DailyData");
-}
+// Assicuriamoci che la cartella esista
+if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
 
-// Funzione: aggiorna o crea dati
-function updateDailyData(source, stationId) {
+function getDailyData(source, stationId) {
   const sourceDir = path.join(DATA_DIR, source);
-  if (!fs.existsSync(sourceDir)) {
-    fs.mkdirSync(sourceDir, { recursive: true });
-  }
+  if (!fs.existsSync(sourceDir)) fs.mkdirSync(sourceDir, { recursive: true });
 
   const filePath = path.join(sourceDir, `${stationId}.json`);
-  let currentData = { station: stationId, data: [] };
+  let dailyData = { station: stationId, data: [] };
 
-  // Se esiste, leggi
+  // Leggi dati esistenti
   if (fs.existsSync(filePath)) {
     try {
       const raw = fs.readFileSync(filePath, "utf8");
       const parsed = JSON.parse(raw);
-      if (parsed && Array.isArray(parsed.data)) {
-        currentData = parsed;
-      }
+      if (parsed && Array.isArray(parsed.data)) dailyData = parsed;
     } catch (err) {
-      console.warn("⚠️ Errore lettura file, rigenero:", filePath);
+      console.warn("⚠️ File corrotto o non valido, rigenero i dati:", filePath);
+      dailyData = { station: stationId, data: [] };
     }
   }
 
-  // Genera valore casuale (simulazione temperatura)
-  const newTemp = 10 + Math.random() * 10;
-
-  // Aggiungi nuovo dato solo se è passato abbastanza tempo
+  // Controlla se aggiungere un nuovo record (ogni 10 minuti)
   const now = new Date();
-  const last = currentData.data[currentData.data.length - 1];
-  const lastTime = last ? new Date(last.timestamp) : null;
-  const minutesSinceLast = lastTime
-    ? (now - lastTime) / 60000
+  const lastRecord = dailyData.data[dailyData.data.length - 1];
+  const minutesSinceLast = lastRecord
+    ? (now - new Date(lastRecord.timestamp)) / 60000
     : Infinity;
 
   if (minutesSinceLast >= 10) {
-    currentData.data.push({
+    // Genera dati simulati
+    const newRecord = {
       timestamp: now.toISOString(),
-      T: parseFloat(newTemp.toFixed(1)),
-    });
+      T: parseFloat((10 + Math.random() * 10).toFixed(1)),
+      H: parseFloat((50 + Math.random() * 40).toFixed(0)), // umidità %
+      P: parseFloat((995 + Math.random() * 15).toFixed(1)), // pressione hPa
+    };
+    dailyData.data.push(newRecord);
 
-    // Mantieni solo ultimi 144 punti
-    if (currentData.data.length > 144) {
-      currentData.data.shift();
+    // Mantieni solo ultimi 144 record
+    if (dailyData.data.length > 144) dailyData.data.shift();
+
+    // Salva file
+    try {
+      fs.writeFileSync(filePath, JSON.stringify(dailyData, null, 2));
+    } catch (err) {
+      console.error("❌ Errore scrittura file:", err);
     }
-
-    fs.writeFileSync(filePath, JSON.stringify(currentData, null, 2));
   }
 
-  return currentData;
+  return dailyData;
 }
 
-// Endpoint: /DailyData/:source/:stationId
+// Endpoint robusto
 app.get("/DailyData/:source/:stationId", (req, res) => {
-  const { source, stationId } = req.params;
-
   try {
-    const json = updateDailyData(source, stationId);
-    res.json(json);
+    const { source, stationId } = req.params;
+    const data = getDailyData(source, stationId);
+    res.json(data);
   } catch (err) {
-    console.error("❌ Errore durante updateDailyData:", err);
-    res.status(500).json({ error: "Errore interno" });
+    console.error("❌ Errore endpoint /DailyData:", err);
+    res.status(500).json({ error: "Errore interno server" });
   }
 });
+
 
 
 
