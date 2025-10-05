@@ -434,27 +434,61 @@ app.get('/limet/:id.json', async (req, res) => {
 // Rimuovi questa riga se usi Node 18+
 // const fetch = require('node-fetch');
 
-app.get('/DailyData/:source/:id.json', async (req, res) => {
-  try {
-    const { source, id } = req.params;
-    const filePath = path.join('.', 'DailyData', source, `${id}.json`);
+const MAX_ENTRIES = 144;
 
-    if (!fs.existsSync(filePath)) {
-      return res.status(404).json({ error: `File per ${id} non trovato` });
+// Funzione per fetchare i dati dal source/id e aggiornare il file locale
+async function fetchAndAppendData(source, id) {
+  try {
+    const url = `https://api-stazioni-meteo.vercel.app/${source}/${id}.json`;
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const latestData = await res.json();
+
+    const dir = path.join('.', 'DailyData', source);
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+
+    const filePath = path.join(dir, `${id}.json`);
+    let existing = { station: id, data: [] };
+
+    if (fs.existsSync(filePath)) {
+      try {
+        existing = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
+        if (!existing.data) existing.data = [];
+      } catch {
+        existing = { station: id, data: [] };
+      }
     }
 
-    const raw = fs.readFileSync(filePath, 'utf-8');
-    const data = JSON.parse(raw);
+    existing.data.push({ timestamp: latestData.timestamp, T: latestData.T });
 
-    const timestamp = new Date().toISOString();
+    // Mantieni solo gli ultimi MAX_ENTRIES
+    if (existing.data.length > MAX_ENTRIES) {
+      existing.data = existing.data.slice(-MAX_ENTRIES);
+    }
 
-    res.setHeader('Content-Type', 'application/json');
-    res.send(JSON.stringify({ timestamp, ...data }));
-
+    fs.writeFileSync(filePath, JSON.stringify(existing, null, 2));
+    console.log(`[${new Date().toISOString()}] Dato aggiunto per ${source}/${id}`);
   } catch (err) {
-    console.error("Errore fetch DailyData:", err);
-    res.status(500).json({ error: err.message });
+    console.error('Errore fetchAndAppendData:', err);
   }
+}
+
+// Esegui subito e poi ogni 10 minuti
+const SOURCE = 'limet';
+const ID = 'SantAlberto';
+fetchAndAppendData(SOURCE, ID);
+setInterval(() => fetchAndAppendData(SOURCE, ID), 10 * 60 * 1000);
+
+// Endpoint per accedere al JSON accumulato
+app.get('/DailyData/:source/:id.json', (req, res) => {
+  const { source, id } = req.params;
+  const filePath = path.join('.', 'DailyData', source, `${id}.json`);
+  if (!fs.existsSync(filePath)) {
+    return res.status(404).json({ error: `File per ${id} non trovato` });
+  }
+  const data = fs.readFileSync(filePath, 'utf-8');
+  res.setHeader('Content-Type', 'application/json');
+  res.send(data);
 });
 
 
