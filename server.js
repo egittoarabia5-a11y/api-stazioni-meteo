@@ -430,30 +430,28 @@ app.get('/limet/:id.json', async (req, res) => {
   }
 });
 
+// Rimuovi questa riga se usi Node 18+
+// const fetch = require('node-fetch');
+
 const fs = require('fs');
 const path = require('path');
 
 /**
  * Funzione che salva un singolo dato daily
- * @param {string} source - fonte es. "limet"
- * @param {string} id - id stazione es. "SantAlberto"
  */
 async function fetchAndSaveDailyData(source, id) {
     try {
         const url = `https://api-stazioni-meteo.vercel.app/${source}/${id}.json`;
-        const res = await fetch(url);
+        const res = await fetch(url); // fetch nativo su Node 18+
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = await res.json();
 
-        // Crea cartella DailyData/source se non esiste
         const dir = path.join(__dirname, 'DailyData', source);
         if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
 
         const filePath = path.join(dir, `${id}.json`);
-
         let fileData = { station: id, data: [] };
 
-        // Se file esiste, carica dati esistenti
         if (fs.existsSync(filePath)) {
             try {
                 const existing = fs.readFileSync(filePath, 'utf-8');
@@ -464,15 +462,12 @@ async function fetchAndSaveDailyData(source, id) {
             }
         }
 
-        // Aggiungi il nuovo dato corrente (timestamp + T)
         const newEntry = {
             timestamp: data.timestamp || new Date().toISOString(),
-            T: data.T ?? data.T ?? null // usa T o altro valore se presente
+            T: data.T ?? null
         };
 
         fileData.data.push(newEntry);
-
-        // Scrive il file aggiornato
         fs.writeFileSync(filePath, JSON.stringify(fileData, null, 2), 'utf-8');
 
         console.log(`[${new Date().toISOString()}] Aggiornato DailyData per ${source}/${id}`);
@@ -481,18 +476,16 @@ async function fetchAndSaveDailyData(source, id) {
     }
 }
 
-// Esempio: lista di stazioni da aggiornare
+// Lista stazioni
 const stations = [
-    { source: 'limet', id: 'SantAlberto' },
-    { source: 'limet', id: 'AltraStazione' }
+    { source: 'limet', id: 'SantAlberto' }
 ];
 
-// Aggiorna subito e poi ogni 10 minuti
+// Aggiorna subito e ogni 10 minuti
 stations.forEach(s => fetchAndSaveDailyData(s.source, s.id));
 setInterval(() => {
     stations.forEach(s => fetchAndSaveDailyData(s.source, s.id));
-}, 10 * 60 * 1000); // 10 minuti
-
+}, 10 * 60 * 1000);
 
 
 
