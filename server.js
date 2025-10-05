@@ -208,6 +208,13 @@ app.get('/torinometeo.json', async (req, res) => {
 });
 
 // --- Endpoint Meteo3R ---
+let meteo3rCache = {
+  timestamp: null,
+  data: [],
+  map: {}
+};
+
+// 🔹 Route principale: genera meteo3r.json
 app.get('/meteo3r.json', async (req, res) => {
   try {
     const url = "https://www.meteo3r.it/dati/mappe/misure.geojson";
@@ -221,11 +228,13 @@ app.get('/meteo3r.json', async (req, res) => {
 
     const timestamp = new Date().toISOString();
     const lines = [JSON.stringify({ timestamp })];
+    const map = {};
 
     geojson.features.forEach(st => {
       const id = st.properties.IDRETE_CODSTAZ;
-      if (!id.startsWith("PIE") && !id.startsWith("VDA")) return;
+      if (!id || (!id.startsWith("PIE") && !id.startsWith("VDA"))) return;
 
+      const name = st.properties.STAZIONE?.trim() || id;
       const lat = parseFloat(st.geometry.coordinates[1]);
       const lon = parseFloat(st.geometry.coordinates[0]);
 
@@ -241,8 +250,9 @@ app.get('/meteo3r.json', async (req, res) => {
       const rainRate = st.properties.P !== "" ? parseFloat(st.properties.P) : null;
 
       const obj = {
+        id,
         S: (temp == null && hum == null && wind == null && rainDaily == null) ? "1" : "0",
-        N: st.properties.STAZIONE || id,
+        N: name,
         T: temp, TH: tempHigh, TL: tempLow,
         D: null, DH: null, DL: null,
         H: hum, HH: humHigh, HL: humLow,
@@ -251,13 +261,49 @@ app.get('/meteo3r.json', async (req, res) => {
         LAT: lat, LON: lon
       };
 
+      map[id.toLowerCase()] = obj;
+      map[name.toLowerCase()] = obj;
       lines.push(JSON.stringify(obj));
     });
+
+    // Salva in cache
+    meteo3rCache = {
+      timestamp,
+      data: lines,
+      map
+    };
+
+    console.log(`✅ Meteo3R aggiornato (${Object.keys(map).length / 2} stazioni)`);
 
     res.setHeader("Content-Type", "application/json");
     res.send(lines.join("\n"));
   } catch (err) {
-    console.error("Errore fetch Meteo3R:", err);
+    console.error("❌ Errore fetch Meteo3R:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+
+// 🔹 Route singola: /meteo3r/:id
+app.get('/meteo3r/:id', async (req, res) => {
+  try {
+    const id = req.params.id.toLowerCase();
+
+    // Se cache vuota o stazione non trovata, rifai fetch dal link Vercel
+    if (!meteo3rCache.timestamp || !meteo3rCache.map[id]) {
+      console.log("🔄 Cache Meteo3R mancante o stazione non trovata, aggiornamento...");
+      const refetch = await fetch("https://api-stazioni-meteo.vercel.app/meteo3r.json");
+      if (!refetch.ok) throw new Error("Impossibile aggiornare cache Meteo3R");
+    }
+
+    const stazione = meteo3rCache.map[id];
+    if (!stazione) {
+      return res.status(404).json({ error: `File per ${req.params.id} non trovato` });
+    }
+
+    res.json(stazione);
+  } catch (err) {
+    console.error("❌ Errore route Meteo3R singola:", err);
     res.status(500).json({ error: err.message });
   }
 });
