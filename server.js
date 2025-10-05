@@ -480,7 +480,7 @@ app.get('/DailyData/:source/:id.json', async (req, res) => {
   // Aggiorna i dati prima di restituire
   await fetchAndAppendData(source, id);
 
-  const filePath = path.join( source, `${id}.json`);
+  const filePath = `https://api-stazioni-meteo.vercel.app/${source}/${id}.json`;
   if (!fs.existsSync(filePath)) {
     return res.status(404).json({ error: `File per ${id} non trovato` });
   }
