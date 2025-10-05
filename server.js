@@ -432,7 +432,6 @@ app.get('/limet/:id.json', async (req, res) => {
 
 const fs = require('fs');
 const path = require('path');
-const fetch = require('node-fetch'); // se Node >=18 puoi usare fetch nativo
 
 /**
  * Funzione che salva un singolo dato daily
