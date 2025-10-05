@@ -432,63 +432,28 @@ app.get('/limet/:id.json', async (req, res) => {
 // Rimuovi questa riga se usi Node 18+
 // const fetch = require('node-fetch');
 
-import fs from 'fs';
-import path from 'path';
+app.get('/DailyData/:source/:id.json', async (req, res) => {
+  try {
+    const { source, id } = req.params;
+    const filePath = path.join('.', 'DailyData', source, `${id}.json`);
 
-// Funzione che prende i dati dal source/id
-async function fetchAndAppendData(source, id) {
-    try {
-        const url = `https://api-stazioni-meteo.vercel.app/${source}/${id}.json`;
-        const res = await fetch(url);
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const latestData = await res.json();
-
-        // Path file locale
-        const dir = path.join('.', 'DailyData', source);
-        if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-
-        const filePath = path.join(dir, `${id}.json`);
-
-        // Legge i dati esistenti, se ci sono
-        let existing = [];
-        if (fs.existsSync(filePath)) {
-            const raw = fs.readFileSync(filePath, 'utf-8');
-            try { existing = JSON.parse(raw); } catch (e) { existing = []; }
-        }
-
-        // Aggiunge l'ultimo dato al file
-        let dataArray;
-        if (existing.data && Array.isArray(existing.data)) {
-            dataArray = existing.data;
-        } else if (Array.isArray(existing)) {
-            dataArray = existing;
-        } else {
-            dataArray = [];
-        }
-
-        dataArray.push({ timestamp: latestData.timestamp, T: latestData.T });
-
-        // Mantieni solo gli ultimi 144 dati
-        if (dataArray.length > 144) {
-            dataArray = dataArray.slice(dataArray.length - 144);
-        }
-
-        // Ricrea struttura con chiave "data"
-        const dataToWrite = { station: id, data: dataArray };
-
-        fs.writeFileSync(filePath, JSON.stringify(dataToWrite, null, 2));
-        console.log(`[${new Date().toISOString()}] Dato aggiunto per ${source}/${id}. Totale dati: ${dataArray.length}`);
-
-    } catch (err) {
-        console.error('Errore fetchAndAppendData:', err);
+    if (!fs.existsSync(filePath)) {
+      return res.status(404).json({ error: `File per ${id} non trovato` });
     }
-}
 
-// Esegui subito e poi ogni 10 minuti
-const SOURCE = 'limet';  // esempio
-const ID = 'SantAlberto'; // esempio
-fetchAndAppendData(SOURCE, ID);
-setInterval(() => fetchAndAppendData(SOURCE, ID), 10 * 60 * 1000);
+    const raw = fs.readFileSync(filePath, 'utf-8');
+    const data = JSON.parse(raw);
+
+    const timestamp = new Date().toISOString();
+
+    res.setHeader('Content-Type', 'application/json');
+    res.send(JSON.stringify({ timestamp, ...data }));
+
+  } catch (err) {
+    console.error("Errore fetch DailyData:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
 
 
 // --- Nuovo endpoint DMA ---
