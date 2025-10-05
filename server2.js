@@ -4,7 +4,7 @@ import path from "path";
 import fetch from "node-fetch"; // se usi Node <18, altrimenti fetch nativo
 
 const app = express();
-const PORT = 3000;
+const PORT = 3001;
 
 const DATA_DIR = path.join(process.cwd(), "DailyData");
 
