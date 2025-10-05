@@ -726,6 +726,82 @@ app.get('/datimeteoasti.json', async (req, res) => {
   }
 });
 
+app.get('/datimeteoasti/:id.json', async (req, res) => {
+  try {
+    const id = req.params.id;
+    const st = stationsDMA[id];
+
+    if (!st) {
+      return res.status(404).json({ error: `Stazione ${id} non trovata` });
+    }
+
+    const timestamp = new Date().toISOString();
+    const url = `https://maps.datimeteoasti.it/api/stationDataTrend/${st.link}`;
+
+    const response = await fetch(url);
+    if (!response.ok) {
+      return res.send(JSON.stringify({ S: "1", N: id }));
+    }
+
+    const data = await response.json();
+    const s = data.series || {};
+
+    // Helper per ottenere l’ultimo valore/timestamp di ogni serie
+    const getLastValue = (arr) =>
+      Array.isArray(arr) && arr.length
+        ? parseFloat(arr[arr.length - 1].value)
+        : null;
+
+    const getLastTimestamp = (arr) =>
+      Array.isArray(arr) && arr.length
+        ? arr[arr.length - 1].timestamp
+        : null;
+
+    // Prende i dati più recenti disponibili
+    const latestTemp = getLastValue(s.temperature);
+    const latestHum = getLastValue(s.humidity);
+    const latestDew = getLastValue(s.dew_point);
+    const latestPres = getLastValue(s.pressure);
+    const latestWind = getLastValue(s.wind_speed);
+    const latestGust = getLastValue(s.wind_gust);
+    const latestRain = getLastValue(s.rain_today);
+    const latestRate = getLastValue(s.rain_rate);
+
+    const lastTime =
+      getLastTimestamp(s.temperature) ||
+      getLastTimestamp(s.humidity) ||
+      getLastTimestamp(s.pressure) ||
+      timestamp;
+
+    // Formattazione valori con 1 decimale se necessario
+    const fmt = (val) =>
+      val == null || isNaN(val)
+        ? null
+        : (val % 1 === 0 ? val.toFixed(1) : val);
+
+    const obj = {
+      S: "0",
+      N: id,
+      T: fmt(latestTemp),
+      H: fmt(latestHum),
+      D: fmt(latestDew),
+      P: fmt(latestPres),
+      V: fmt(latestWind),
+      G: fmt(latestGust),
+      R: fmt(latestRain),
+      RR: fmt(latestRate),
+      LAT: st.lat,
+      LON: st.lon,
+    };
+
+    res.setHeader("Content-Type", "application/json");
+    res.send(JSON.stringify({ timestamp: lastTime, ...obj }));
+
+  } catch (err) {
+    console.error("Errore fetch DMA singola stazione:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
 
 
 
