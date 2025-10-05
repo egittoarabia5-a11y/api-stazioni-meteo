@@ -434,9 +434,6 @@ app.get('/limet/:id.json', async (req, res) => {
 // Rimuovi questa riga se usi Node 18+
 // const fetch = require('node-fetch');
 
-import fs from 'fs';
-import path from 'path';
-import fetch from 'node-fetch'; // solo se Node < 18
 
 const MAX_ENTRIES = 144;
 
