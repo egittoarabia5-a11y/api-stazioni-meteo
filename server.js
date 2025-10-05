@@ -2,7 +2,6 @@ import cors from "cors";
 import express from "express";
 import fetch from "node-fetch";
 
-
 const app = express();
 const port = 3111;
 
@@ -433,60 +432,56 @@ app.get('/limet/:id.json', async (req, res) => {
 // Rimuovi questa riga se usi Node 18+
 // const fetch = require('node-fetch');
 
-const fs = require('fs');
-const path = require('path');
+import fs from 'fs';
+import path from 'path';
 
-/**
- * Funzione che salva un singolo dato daily
- */
-async function fetchAndSaveDailyData(source, id) {
+// Funzione che prende i dati dal source/id
+async function fetchAndAppendData(source, id) {
     try {
         const url = `https://api-stazioni-meteo.vercel.app/${source}/${id}.json`;
-        const res = await fetch(url); // fetch nativo su Node 18+
+        const res = await fetch(url);
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const data = await res.json();
+        const latestData = await res.json();
 
-        const dir = path.join(__dirname, 'DailyData', source);
+        // Path file locale
+        const dir = path.join('.', 'DailyData', source);
         if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
 
         const filePath = path.join(dir, `${id}.json`);
-        let fileData = { station: id, data: [] };
 
+        // Legge i dati esistenti, se ci sono
+        let existing = [];
         if (fs.existsSync(filePath)) {
-            try {
-                const existing = fs.readFileSync(filePath, 'utf-8');
-                fileData = JSON.parse(existing);
-                if (!Array.isArray(fileData.data)) fileData.data = [];
-            } catch {
-                fileData = { station: id, data: [] };
-            }
+            const raw = fs.readFileSync(filePath, 'utf-8');
+            try { existing = JSON.parse(raw); } catch (e) { existing = []; }
         }
 
-        const newEntry = {
-            timestamp: data.timestamp || new Date().toISOString(),
-            T: data.T ?? null
-        };
+        // Aggiunge l'ultimo dato al file
+        // Se esiste la chiave "data", manteniamo lo stesso formato
+        let dataToWrite;
+        if (existing.data && Array.isArray(existing.data)) {
+            existing.data.push({ timestamp: latestData.timestamp, T: latestData.T });
+            dataToWrite = existing;
+        } else if (Array.isArray(existing)) {
+            existing.push({ timestamp: latestData.timestamp, T: latestData.T });
+            dataToWrite = existing;
+        } else {
+            dataToWrite = { station: id, data: [{ timestamp: latestData.timestamp, T: latestData.T }] };
+        }
 
-        fileData.data.push(newEntry);
-        fs.writeFileSync(filePath, JSON.stringify(fileData, null, 2), 'utf-8');
+        fs.writeFileSync(filePath, JSON.stringify(dataToWrite, null, 2));
+        console.log(`[${new Date().toISOString()}] Dato aggiunto per ${source}/${id}`);
 
-        console.log(`[${new Date().toISOString()}] Aggiornato DailyData per ${source}/${id}`);
     } catch (err) {
-        console.error(`Errore fetchAndSaveDailyData ${source}/${id}:`, err.message);
+        console.error('Errore fetchAndAppendData:', err);
     }
 }
 
-// Lista stazioni
-const stations = [
-    { source: 'limet', id: 'SantAlberto' }
-];
-
-// Aggiorna subito e ogni 10 minuti
-stations.forEach(s => fetchAndSaveDailyData(s.source, s.id));
-setInterval(() => {
-    stations.forEach(s => fetchAndSaveDailyData(s.source, s.id));
-}, 10 * 60 * 1000);
-
+// Esegui subito e poi ogni 10 minuti
+const SOURCE = 'limet';  // esempio
+const ID = 'SantAlberto'; // esempio
+fetchAndAppendData(SOURCE, ID);
+setInterval(() => fetchAndAppendData(SOURCE, ID), 10 * 60 * 1000);
 
 
 
