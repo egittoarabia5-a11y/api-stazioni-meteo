@@ -457,20 +457,27 @@ async function fetchAndAppendData(source, id) {
         }
 
         // Aggiunge l'ultimo dato al file
-        // Se esiste la chiave "data", manteniamo lo stesso formato
-        let dataToWrite;
+        let dataArray;
         if (existing.data && Array.isArray(existing.data)) {
-            existing.data.push({ timestamp: latestData.timestamp, T: latestData.T });
-            dataToWrite = existing;
+            dataArray = existing.data;
         } else if (Array.isArray(existing)) {
-            existing.push({ timestamp: latestData.timestamp, T: latestData.T });
-            dataToWrite = existing;
+            dataArray = existing;
         } else {
-            dataToWrite = { station: id, data: [{ timestamp: latestData.timestamp, T: latestData.T }] };
+            dataArray = [];
         }
 
+        dataArray.push({ timestamp: latestData.timestamp, T: latestData.T });
+
+        // Mantieni solo gli ultimi 144 dati
+        if (dataArray.length > 144) {
+            dataArray = dataArray.slice(dataArray.length - 144);
+        }
+
+        // Ricrea struttura con chiave "data"
+        const dataToWrite = { station: id, data: dataArray };
+
         fs.writeFileSync(filePath, JSON.stringify(dataToWrite, null, 2));
-        console.log(`[${new Date().toISOString()}] Dato aggiunto per ${source}/${id}`);
+        console.log(`[${new Date().toISOString()}] Dato aggiunto per ${source}/${id}. Totale dati: ${dataArray.length}`);
 
     } catch (err) {
         console.error('Errore fetchAndAppendData:', err);
@@ -482,8 +489,6 @@ const SOURCE = 'limet';  // esempio
 const ID = 'SantAlberto'; // esempio
 fetchAndAppendData(SOURCE, ID);
 setInterval(() => fetchAndAppendData(SOURCE, ID), 10 * 60 * 1000);
-
-
 
 
 // --- Nuovo endpoint DMA ---
