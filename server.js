@@ -434,9 +434,13 @@ app.get('/limet/:id.json', async (req, res) => {
 // Rimuovi questa riga se usi Node 18+
 // const fetch = require('node-fetch');
 
+import fs from 'fs';
+import path from 'path';
+import fetch from 'node-fetch'; // solo se Node < 18
+
 const MAX_ENTRIES = 144;
 
-// Funzione per fetchare i dati dal source/id e aggiornare il file locale
+// Funzione per fetchare i dati e aggiornare il file locale
 async function fetchAndAppendData(source, id) {
   try {
     const url = `https://api-stazioni-meteo.vercel.app/${source}/${id}.json`;
@@ -461,7 +465,6 @@ async function fetchAndAppendData(source, id) {
 
     existing.data.push({ timestamp: latestData.timestamp, T: latestData.T });
 
-    // Mantieni solo gli ultimi MAX_ENTRIES
     if (existing.data.length > MAX_ENTRIES) {
       existing.data = existing.data.slice(-MAX_ENTRIES);
     }
@@ -473,24 +476,22 @@ async function fetchAndAppendData(source, id) {
   }
 }
 
-// Esegui subito e poi ogni 10 minuti
-const SOURCE = 'limet';
-const ID = 'SantAlberto';
-fetchAndAppendData(SOURCE, ID);
-setInterval(() => fetchAndAppendData(SOURCE, ID), 10 * 60 * 1000);
-
-// Endpoint per accedere al JSON accumulato
-app.get('/DailyData/:source/:id.json', (req, res) => {
+// Endpoint dinamico per qualsiasi source/id
+app.get('/DailyData/:source/:id.json', async (req, res) => {
   const { source, id } = req.params;
+
+  // Aggiorna i dati prima di restituire
+  await fetchAndAppendData(source, id);
+
   const filePath = path.join('.', 'DailyData', source, `${id}.json`);
   if (!fs.existsSync(filePath)) {
     return res.status(404).json({ error: `File per ${id} non trovato` });
   }
+
   const data = fs.readFileSync(filePath, 'utf-8');
   res.setHeader('Content-Type', 'application/json');
   res.send(data);
 });
-
 
 // --- Nuovo endpoint DMA ---
 const stationsDMA = {
