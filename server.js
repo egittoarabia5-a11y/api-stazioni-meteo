@@ -435,9 +435,6 @@ app.get('/limet/:id.json', async (req, res) => {
 // const fetch = require('node-fetch');
 
 
-const MAX_ENTRIES = 144;
-
-// Funzione per fetchare i dati e aggiornare il file locale
 async function fetchAndAppendData(source, id) {
   try {
     const url = `https://api-stazioni-meteo.vercel.app/${source}/${id}.json`;
@@ -445,51 +442,67 @@ async function fetchAndAppendData(source, id) {
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const latestData = await res.json();
 
+    // Cartella e file locale
     const dir = path.join('.', 'DailyData', source);
     if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
 
     const filePath = path.join(dir, `${id}.json`);
-    let existing = { station: id, data: [] };
 
-    if (fs.existsSync(filePath)) {
-      try {
-        existing = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
-        if (!existing.data) existing.data = [];
-      } catch {
-        existing = { station: id, data: [] };
-      }
+    // Se il file non esiste, crealo subito
+    if (!fs.existsSync(filePath)) {
+      fs.writeFileSync(filePath, JSON.stringify({ station: id, data: [] }, null, 2));
     }
 
+    // Leggi dati esistenti
+    let existing = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
+
+    // Assicurati che ci sia l'array "data"
+    if (!existing.data || !Array.isArray(existing.data)) {
+      existing.data = [];
+    }
+
+    // Aggiungi l'ultimo dato
     existing.data.push({ timestamp: latestData.timestamp, T: latestData.T });
 
-    if (existing.data.length > MAX_ENTRIES) {
-      existing.data = existing.data.slice(-MAX_ENTRIES);
+    // Mantieni massimo 144 dati
+    if (existing.data.length > 144) {
+      existing.data = existing.data.slice(-144);
     }
 
+    // Riscrivi il file
     fs.writeFileSync(filePath, JSON.stringify(existing, null, 2));
     console.log(`[${new Date().toISOString()}] Dato aggiunto per ${source}/${id}`);
+
   } catch (err) {
     console.error('Errore fetchAndAppendData:', err);
   }
 }
 
-// Endpoint dinamico per qualsiasi source/id
-app.get('/DailyData/:source/:id.json', async (req, res) => {
+// ===== Stazioni da aggiornare =====
+const STATIONS = [
+  { source: 'limet', id: 'SantAlberto' },
+  // aggiungi altre stazioni se vuoi
+];
+
+// ===== Avvio fetch iniziale e intervallo =====
+STATIONS.forEach(st => {
+  fetchAndAppendData(st.source, st.id); // fetch subito
+  setInterval(() => fetchAndAppendData(st.source, st.id), 10 * 60 * 1000); // ogni 10 minuti
+});
+
+// ===== Rotta per servire i file =====
+app.get('/DailyData/:source/:id.json', (req, res) => {
   const { source, id } = req.params;
+  const filePath = path.join('.', 'DailyData', source, `${id}.json`);
 
-  // Aggiorna i dati prima di restituire
-  await fetchAndAppendData(source, id);
-
-  const filePath = `https://api-stazioni-meteo.vercel.app/${source}/${id}.json`;
   if (!fs.existsSync(filePath)) {
     return res.status(404).json({ error: `File per ${id} non trovato` });
   }
 
-  const data = fs.readFileSync(filePath, 'utf-8');
   res.setHeader('Content-Type', 'application/json');
+  const data = fs.readFileSync(filePath, 'utf-8');
   res.send(data);
 });
-
 // --- Nuovo endpoint DMA ---
 const stationsDMA = {
   Capriglio: { lat: 45.013, lon: 8.023, link: "capriglio" },
