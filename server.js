@@ -430,68 +430,100 @@ app.get('/limet/:id.json', async (req, res) => {
   }
 });
 
-const dailyCache = {};
-const MAX_RECORDS = 144;
+const DATA_DIR = path.join(process.cwd(), "DailyData");
 
-// funzione per fetch temperatura
-async function fetchTemp(st) {
-  try {
-    const url = `https://retelimet.centrometeoligure.it/stazioni/${st.link}/data/cu/realtimegauges.txt`;
-    const res = await fetch(url);
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const json = await res.json();
-    const temp = parseFloat(String(json.temp ?? json.T).replace(",", "."));
-    return isNaN(temp) ? null : parseFloat(temp.toFixed(1));
-  } catch (err) {
-    console.warn(`Errore fetchTemp ${st.link}:`, err.message);
-    return null;
+// assicura che la cartella principale esista
+if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
+
+// funzione per aggiornare i dati
+function updateDailyData(source, stationId) {
+  const sourceDir = path.join(DATA_DIR, source);
+  if (!fs.existsSync(sourceDir)) fs.mkdirSync(sourceDir, { recursive: true });
+
+  const filePath = path.join(sourceDir, `${stationId}.json`);
+
+  let currentData = { station: stationId, data: [] };
+
+  // se il file esiste, leggilo
+  if (fs.existsSync(filePath)) {
+    try {
+      currentData = JSON.parse(fs.readFileSync(filePath, "utf8"));
+      if (!Array.isArray(currentData.data)) currentData.data = [];
+    } catch {
+      console.warn("File JSON corrotto, rigenerato:", filePath);
+    }
   }
+
+  // genera temperatura casuale
+  const newTemp = 10 + Math.random() * 10;
+
+  // aggiungi nuovo dato
+  currentData.data.push({
+    timestamp: new Date().toISOString(),
+    T: parseFloat(newTemp.toFixed(1)),
+  });
+
+  // se supera 144 punti (24h di dati a 10 min), rimuovi il più vecchio
+  if (currentData.data.length > 144) {
+    currentData.data.shift();
+  }
+
+  // salva
+  fs.writeFileSync(filePath, JSON.stringify(currentData, null, 2));
 }
 
-// aggiorna tutte le stazioni
-async function updateAllStations() {
-  for (const id of Object.keys(stationsLIMET)) {
-    const st = stationsLIMET[id];
-    if (!st) continue;
+// aggiorna ogni 10 minuti ai minuti :00, :10, :20, ...
+function scheduleUpdates() {
+  const now = new Date();
+  const next10 = new Date(now);
+  next10.setMinutes(Math.ceil(now.getMinutes() / 10) * 10, 0, 0);
+  const delay = next10 - now;
 
-    const temp = await fetchTemp(st);
-    if (temp === null) continue;
+  setTimeout(() => {
+    console.log("⏱️ Aggiornamento dati ogni 10 minuti...");
 
-    if (!dailyCache[id]) dailyCache[id] = [];
+    // qui puoi mettere tutte le stazioni che vuoi aggiornare
+    const SOURCES = {
+      limet: ["SantAlberto", "GenovaCentro", "Arenzano"],
+    };
 
-    dailyCache[id].push({ timestamp: new Date().toISOString(), T: temp });
-
-    while (dailyCache[id].length > MAX_RECORDS) {
-      dailyCache[id].shift();
+    for (const [source, stations] of Object.entries(SOURCES)) {
+      for (const station of stations) {
+        updateDailyData(source, station);
+      }
     }
 
-    console.log(`[${new Date().toISOString()}] updated ${id}: T=${temp}`);
+    // dopo il primo aggiornamento, ripeti ogni 10 minuti
+    setInterval(() => {
+      for (const [source, stations] of Object.entries(SOURCES)) {
+        for (const station of stations) {
+          updateDailyData(source, station);
+        }
+      }
+    }, 10 * 60 * 1000);
+  }, delay);
+}
+
+scheduleUpdates();
+
+// endpoint: /DailyData/Source/Id
+app.get("/DailyData/:source/:stationId", (req, res) => {
+  const { source, stationId } = req.params;
+  const filePath = path.join(DATA_DIR, source, `${stationId}.json`);
+
+  if (!fs.existsSync(filePath)) {
+    return res.status(404).json({ error: "File non trovato" });
   }
-}
 
-// calcola ms fino al prossimo multiplo di 10 minuti
-function msToNextTenMinutes() {
-  const now = new Date();
-  const minutes = now.getMinutes();
-  const nextTen = Math.ceil(minutes / 10) * 10;
-  const diffMinutes = nextTen - minutes;
-  const diffMs = diffMinutes * 60 * 1000 - now.getSeconds() * 1000 - now.getMilliseconds();
-  return diffMs > 0 ? diffMs : 0;
-}
-
-// primo update al prossimo multiplo di 10 minuti, poi ogni 10 minuti
-setTimeout(() => {
-  updateAllStations(); // primo update
-  setInterval(updateAllStations, 10 * 60 * 1000); // poi ogni 10 minuti
-}, msToNextTenMinutes());
-
-// endpoint per servire i dati daily
-app.get("/DailyData/limet/:id.json", (req, res) => {
-  const id = req.params.id;
-  const data = dailyCache[id] || [];
-  res.setHeader("Content-Type", "application/json");
-  res.send(JSON.stringify({ station: id, data }));
+  try {
+    const json = JSON.parse(fs.readFileSync(filePath, "utf8"));
+    res.json(json);
+  } catch (err) {
+    res.status(500).json({ error: "Errore lettura JSON", details: err.message });
+  }
 });
+
+
 
 
 // --- Nuovo endpoint DMA ---
