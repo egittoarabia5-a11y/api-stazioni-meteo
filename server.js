@@ -208,6 +208,59 @@ app.get('/torinometeo.json', async (req, res) => {
 });
 
 // --- Endpoint Meteo3R ---
+app.get('/meteo3r.json', async (req, res) => {
+  try {
+    const url = "https://www.meteo3r.it/dati/mappe/misure.geojson";
+    const response = await fetch(url);
+    if (!response.ok) throw new Error("HTTP " + response.status);
+
+    const geojson = await response.json();
+    if (!geojson.features || !Array.isArray(geojson.features)) {
+      return res.status(500).json({ error: "Formato GeoJSON inatteso" });
+    }
+
+    const timestamp = new Date().toISOString();
+    const lines = [JSON.stringify({ timestamp })];
+
+    geojson.features.forEach(st => {
+      const id = st.properties.IDRETE_CODSTAZ;
+      if (!id.startsWith("PIE") && !id.startsWith("VDA")) return;
+
+      const lat = parseFloat(st.geometry.coordinates[1]);
+      const lon = parseFloat(st.geometry.coordinates[0]);
+
+      const temp = st.properties.T !== "" ? parseFloat(st.properties.T) : null;
+      const tempHigh = st.properties.T_MAX !== "" ? parseFloat(st.properties.T_MAX) : null;
+      const tempLow = st.properties.T_MIN !== "" ? parseFloat(st.properties.T_MIN) : null;
+      const hum = st.properties.U !== "" ? parseFloat(st.properties.U) : null;
+      const humHigh = st.properties.U_MAX !== "" ? parseFloat(st.properties.U_MAX) : null;
+      const humLow = st.properties.U_MIN !== "" ? parseFloat(st.properties.U_MIN) : null;
+      const wind = st.properties.VV !== "" ? parseFloat(st.properties.VV) : null;
+      const windGust = st.properties.VV_MAX !== "" ? parseFloat(st.properties.VV_MAX) : null;
+      const rainDaily = st.properties.P_24H !== "" ? parseFloat(st.properties.P_24H) : null;
+      const rainRate = st.properties.P !== "" ? parseFloat(st.properties.P) : null;
+
+      const obj = {
+        S: (temp == null && hum == null && wind == null && rainDaily == null) ? "1" : "0",
+        N: st.properties.STAZIONE || id,
+        T: temp, TH: tempHigh, TL: tempLow,
+        D: null, DH: null, DL: null,
+        H: hum, HH: humHigh, HL: humLow,
+        V: wind, G: windGust,
+        R: rainDaily, RR: rainRate,
+        LAT: lat, LON: lon
+      };
+
+      lines.push(JSON.stringify(obj));
+    });
+
+    res.setHeader("Content-Type", "application/json");
+    res.send(lines.join("\n"));
+  } catch (err) {
+    console.error("Errore fetch Meteo3R:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
 let meteo3rCache = {
   timestamp: null,
   data: [],
@@ -307,7 +360,6 @@ app.get('/meteo3r/:id', async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
-
 // --- Nuovo endpoint LIMET ---
 const stationsLIMET = {
   Molassana: { link: "terzereti", lat: 44.461, lon: 8.987 },
@@ -481,36 +533,7 @@ app.get('/limet/:id.json', async (req, res) => {
 // const fetch = require('node-fetch');
 
 
-const dailyData = {}; // dati in memoria
 
-async function fetchAndAppendData(source, id) {
-  try {
-    const url = `https://api-stazioni-meteo.vercel.app/${source}/${id}.json`;
-    const res = await fetch(url);
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const latest = await res.json();
-
-    if (!dailyData[id]) dailyData[id] = { station: id, data: [] };
-    dailyData[id].data.push({ timestamp: latest.timestamp, T: latest.T });
-    if (dailyData[id].data.length > 144) {
-      dailyData[id].data = dailyData[id].data.slice(-144);
-    }
-    console.log(`Dato aggiunto per ${id}`);
-  } catch (err) {
-    console.error(err);
-  }
-}
-
-// aggiorna ogni 10 minuti
-setInterval(() => fetchAndAppendData('limet', 'SantAlberto'), 10*60*1000);
-fetchAndAppendData('limet', 'SantAlberto'); // primo fetch subito
-
-// rotte
-app.get('/DailyData/:source/:id.json', (req, res) => {
-  const id = req.params.id;
-  if (!dailyData[id]) return res.status(404).json({ error: `File per ${id} non trovato` });
-  res.json(dailyData[id]);
-});
 
 // --- Nuovo endpoint DMA ---
 const stationsDMA = {
