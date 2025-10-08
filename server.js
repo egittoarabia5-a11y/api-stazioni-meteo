@@ -261,105 +261,67 @@ app.get('/meteo3r.json', async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
-let meteo3rCache = {
-  timestamp: null,
-  data: [],
-  map: {}
-};
-
-// 🔹 Route principale: genera meteo3r.json
-app.get('/meteo3r.json', async (req, res) => {
+app.get('/weathercloud.json', async (req, res) => {
   try {
-    const url = "https://www.meteo3r.it/dati/mappe/misure.geojson";
-    const response = await fetch(url);
-    if (!response.ok) throw new Error("HTTP " + response.status);
+    // URL sorgente
+    const ECOWITT_URL = 'https://corsproxy.io/?' + encodeURIComponent(
+      'https://app.weathercloud.net/device/stats?code=8840835265&WEATHERCLOUD_CSRF_TOKEN=T1BKWWJRVVFBMXh-QlJ2U2FId2lHR3JWWFVsZE84RnOSSiVzhExaSZ8i0eb2KFS36mzL8cMeVq8nTWd5az0Z9w%3D%3D'
+    );
 
-    const geojson = await response.json();
-    if (!geojson.features || !Array.isArray(geojson.features)) {
-      return res.status(500).json({ error: "Formato GeoJSON inatteso" });
+    // Fetch pagina HTML
+    const response = await fetch(ECOWITT_URL);
+    const html = await response.text();
+
+    // Cerca un JSON all’interno dell’HTML
+    const jsonMatch = html.match(/\{[\s\S]*?\}\s*<\/script>/);
+    if (!jsonMatch) return res.status(500).json({ error: 'JSON non trovato nella pagina' });
+
+    // Estrai e pulisci la parte JSON
+    const rawJson = jsonMatch[0]
+      .replace(/<\/script>/, '') // rimuove il tag di chiusura
+      .trim();
+
+    // Tenta il parsing
+    let data;
+    try {
+      data = JSON.parse(rawJson);
+    } catch (e) {
+      console.error('Errore parsing JSON:', e.message);
+      return res.status(500).json({ error: 'Parsing JSON fallito' });
     }
 
+    // Crea output NDJSON
     const timestamp = new Date().toISOString();
     const lines = [JSON.stringify({ timestamp })];
-    const map = {};
 
-    geojson.features.forEach(st => {
-      const id = st.properties.IDRETE_CODSTAZ;
-      if (!id || (!id.startsWith("PIE") && !id.startsWith("VDA"))) return;
-
-      const name = st.properties.STAZIONE?.trim() || id;
-      const lat = parseFloat(st.geometry.coordinates[1]);
-      const lon = parseFloat(st.geometry.coordinates[0]);
-
-      const temp = st.properties.T !== "" ? parseFloat(st.properties.T) : null;
-      const tempHigh = st.properties.T_MAX !== "" ? parseFloat(st.properties.T_MAX) : null;
-      const tempLow = st.properties.T_MIN !== "" ? parseFloat(st.properties.T_MIN) : null;
-      const hum = st.properties.U !== "" ? parseFloat(st.properties.U) : null;
-      const humHigh = st.properties.U_MAX !== "" ? parseFloat(st.properties.U_MAX) : null;
-      const humLow = st.properties.U_MIN !== "" ? parseFloat(st.properties.U_MIN) : null;
-      const wind = st.properties.VV !== "" ? parseFloat(st.properties.VV) : null;
-      const windGust = st.properties.VV_MAX !== "" ? parseFloat(st.properties.VV_MAX) : null;
-      const rainDaily = st.properties.P_24H !== "" ? parseFloat(st.properties.P_24H) : null;
-      const rainRate = st.properties.P !== "" ? parseFloat(st.properties.P) : null;
-
-      const obj = {
-        id,
-        S: (temp == null && hum == null && wind == null && rainDaily == null) ? "1" : "0",
-        N: name,
-        T: temp, TH: tempHigh, TL: tempLow,
-        D: null, DH: null, DL: null,
-        H: hum, HH: humHigh, HL: humLow,
-        V: wind, G: windGust,
-        R: rainDaily, RR: rainRate,
-        LAT: lat, LON: lon
-      };
-
-      map[id.toLowerCase()] = obj;
-      map[name.toLowerCase()] = obj;
-      lines.push(JSON.stringify(obj));
-    });
-
-    // Salva in cache
-    meteo3rCache = {
-      timestamp,
-      data: lines,
-      map
+    // Mappatura di alcuni campi principali
+    const obj = {
+      T: data.temp_current?.[1] ?? null,      // Temperatura attuale
+      TH: data.temp_day_max?.[1] ?? null,     // Temperatura massima giornaliera
+      TL: data.temp_day_min?.[1] ?? null,     // Temperatura minima giornaliera
+      H: data.hum_current?.[1] ?? null,       // Umidità attuale
+      HH: data.hum_day_max?.[1] ?? null,      // Umidità max giornaliera
+      HL: data.hum_day_min?.[1] ?? null,      // Umidità min giornaliera
+      D: data.dew_current?.[1] ?? null,       // Dew point attuale
+      P: data.bar_current?.[1] ?? null,       // Pressione attuale
+      V: data.wspd_current?.[1] ?? null,      // Velocità vento
+      G: data.wspdhi_current?.[1] ?? null,    // Raffica vento
+      R: data.rain_current?.[1] ?? null,      // Pioggia attuale
+      RR: data.rainrate_current?.[1] ?? null, // Intensità pioggia
+      WD: data.wdir_current?.[1] ?? null,     // Direzione vento
     };
 
-    console.log(`✅ Meteo3R aggiornato (${Object.keys(map).length / 2} stazioni)`);
+    lines.push(JSON.stringify(obj));
 
-    res.setHeader("Content-Type", "application/json");
+    // Invio come NDJSON
+    res.setHeader('Content-Type', 'application/json');
     res.send(lines.join("\n"));
   } catch (err) {
-    console.error("❌ Errore fetch Meteo3R:", err);
+    console.error('Errore generale:', err);
     res.status(500).json({ error: err.message });
   }
 });
 
-
-// 🔹 Route singola: /meteo3r/:id
-app.get('/meteo3r/:id', async (req, res) => {
-  try {
-    const id = req.params.id.toLowerCase();
-
-    // Se cache vuota o stazione non trovata, rifai fetch dal link Vercel
-    if (!meteo3rCache.timestamp || !meteo3rCache.map[id]) {
-      console.log("🔄 Cache Meteo3R mancante o stazione non trovata, aggiornamento...");
-      const refetch = await fetch("https://api-stazioni-meteo.vercel.app/meteo3r.json");
-      if (!refetch.ok) throw new Error("Impossibile aggiornare cache Meteo3R");
-    }
-
-    const stazione = meteo3rCache.map[id];
-    if (!stazione) {
-      return res.status(404).json({ error: `File per ${req.params.id} non trovato` });
-    }
-
-    res.json(stazione);
-  } catch (err) {
-    console.error("❌ Errore route Meteo3R singola:", err);
-    res.status(500).json({ error: err.message });
-  }
-});
 // --- Nuovo endpoint LIMET ---
 const stationsLIMET = {
   Molassana: { link: "terzereti", lat: 44.461, lon: 8.987 },
@@ -531,8 +493,6 @@ app.get('/limet/:id.json', async (req, res) => {
 
 // Rimuovi questa riga se usi Node 18+
 // const fetch = require('node-fetch');
-
-
 
 
 // --- Nuovo endpoint DMA ---
@@ -795,82 +755,6 @@ app.get('/datimeteoasti.json', async (req, res) => {
   }
 });
 
-app.get('/datimeteoasti/:id.json', async (req, res) => {
-  try {
-    const id = req.params.id;
-    const st = stationsDMA[id];
-
-    if (!st) {
-      return res.status(404).json({ error: `Stazione ${id} non trovata` });
-    }
-
-    const timestamp = new Date().toISOString();
-    const url = `https://maps.datimeteoasti.it/api/stationDataTrend/${st.link}`;
-
-    const response = await fetch(url);
-    if (!response.ok) {
-      return res.send(JSON.stringify({ S: "1", N: id }));
-    }
-
-    const data = await response.json();
-    const s = data.series || {};
-
-    // Helper per ottenere l’ultimo valore/timestamp di ogni serie
-    const getLastValue = (arr) =>
-      Array.isArray(arr) && arr.length
-        ? parseFloat(arr[arr.length - 1].value)
-        : null;
-
-    const getLastTimestamp = (arr) =>
-      Array.isArray(arr) && arr.length
-        ? arr[arr.length - 1].timestamp
-        : null;
-
-    // Prende i dati più recenti disponibili
-    const latestTemp = getLastValue(s.temperature);
-    const latestHum = getLastValue(s.humidity);
-    const latestDew = getLastValue(s.dew_point);
-    const latestPres = getLastValue(s.pressure);
-    const latestWind = getLastValue(s.wind_speed);
-    const latestGust = getLastValue(s.wind_gust);
-    const latestRain = getLastValue(s.rain_today);
-    const latestRate = getLastValue(s.rain_rate);
-
-    const lastTime =
-      getLastTimestamp(s.temperature) ||
-      getLastTimestamp(s.humidity) ||
-      getLastTimestamp(s.pressure) ||
-      timestamp;
-
-    // Formattazione valori con 1 decimale se necessario
-    const fmt = (val) =>
-      val == null || isNaN(val)
-        ? null
-        : (val % 1 === 0 ? val.toFixed(1) : val);
-
-    const obj = {
-      S: "0",
-      N: id,
-      T: fmt(latestTemp),
-      H: fmt(latestHum),
-      D: fmt(latestDew),
-      P: fmt(latestPres),
-      V: fmt(latestWind),
-      G: fmt(latestGust),
-      R: fmt(latestRain),
-      RR: fmt(latestRate),
-      LAT: st.lat,
-      LON: st.lon,
-    };
-
-    res.setHeader("Content-Type", "application/json");
-    res.send(JSON.stringify({ timestamp: lastTime, ...obj }));
-
-  } catch (err) {
-    console.error("Errore fetch DMA singola stazione:", err);
-    res.status(500).json({ error: err.message });
-  }
-});
 
 
 
