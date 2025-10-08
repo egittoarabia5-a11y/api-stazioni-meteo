@@ -261,25 +261,6 @@ app.get('/meteo3r.json', async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
-import puppeteer from 'puppeteer';
-
-app.get('/ecowitt.json', async (req, res) => {
-  const browser = await puppeteer.launch({ headless: 'new' });
-  const page = await browser.newPage();
-
-  await page.goto('https://app.weathercloud.net/device/stats?code=8840835265', { waitUntil: 'networkidle2' });
-
-  // Esegui nel contesto della pagina
-  const data = await page.evaluate(() => {
-    return window.data || null; // qui serve sapere il nome della variabile JS
-  });
-
-  await browser.close();
-
-  if (!data) return res.status(500).json({ error: 'Dati non trovati nel browser' });
-
-  res.json(data);
-});
 
 // --- Nuovo endpoint LIMET ---
 const stationsLIMET = {
