@@ -261,63 +261,42 @@ app.get('/meteo3r.json', async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
-app.get('/weathercloud.json', async (req, res) => {
+app.get('/ecowitt.json', async (req, res) => {
   try {
-    // URL sorgente
-    const ECOWITT_URL = 'https://corsproxy.io/?' + encodeURIComponent(
-      'https://app.weathercloud.net/device/stats?code=8840835265&WEATHERCLOUD_CSRF_TOKEN=T1BKWWJRVVFBMXh-QlJ2U2FId2lHR3JWWFVsZE84RnOSSiVzhExaSZ8i0eb2KFS36mzL8cMeVq8nTWd5az0Z9w%3D%3D'
+    // URL API che fornisce direttamente il JSON (non HTML!)
+    const API_URL = 'https://corsproxy.io/?' + encodeURIComponent(
+      'https://app.weathercloud.net/device/stats/data?code=8840835265'
     );
 
-    // Fetch pagina HTML
-    const response = await fetch(ECOWITT_URL);
-    const html = await response.text();
+    const response = await fetch(API_URL);
+    const data = await response.json(); // Ora è JSON diretto
 
-    // Cerca un JSON all’interno dell’HTML
-    const jsonMatch = html.match(/\{[\s\S]*?\}\s*<\/script>/);
-    if (!jsonMatch) return res.status(500).json({ error: 'JSON non trovato nella pagina' });
-
-    // Estrai e pulisci la parte JSON
-    const rawJson = jsonMatch[0]
-      .replace(/<\/script>/, '') // rimuove il tag di chiusura
-      .trim();
-
-    // Tenta il parsing
-    let data;
-    try {
-      data = JSON.parse(rawJson);
-    } catch (e) {
-      console.error('Errore parsing JSON:', e.message);
-      return res.status(500).json({ error: 'Parsing JSON fallito' });
-    }
-
-    // Crea output NDJSON
     const timestamp = new Date().toISOString();
     const lines = [JSON.stringify({ timestamp })];
 
-    // Mappatura di alcuni campi principali
+    // Mappatura dei campi principali
     const obj = {
-      T: data.temp_current?.[1] ?? null,      // Temperatura attuale
-      TH: data.temp_day_max?.[1] ?? null,     // Temperatura massima giornaliera
-      TL: data.temp_day_min?.[1] ?? null,     // Temperatura minima giornaliera
-      H: data.hum_current?.[1] ?? null,       // Umidità attuale
-      HH: data.hum_day_max?.[1] ?? null,      // Umidità max giornaliera
-      HL: data.hum_day_min?.[1] ?? null,      // Umidità min giornaliera
-      D: data.dew_current?.[1] ?? null,       // Dew point attuale
-      P: data.bar_current?.[1] ?? null,       // Pressione attuale
-      V: data.wspd_current?.[1] ?? null,      // Velocità vento
-      G: data.wspdhi_current?.[1] ?? null,    // Raffica vento
-      R: data.rain_current?.[1] ?? null,      // Pioggia attuale
-      RR: data.rainrate_current?.[1] ?? null, // Intensità pioggia
-      WD: data.wdir_current?.[1] ?? null,     // Direzione vento
+      T: data.temp_current?.[1] ?? null,
+      TH: data.temp_day_max?.[1] ?? null,
+      TL: data.temp_day_min?.[1] ?? null,
+      H: data.hum_current?.[1] ?? null,
+      HH: data.hum_day_max?.[1] ?? null,
+      HL: data.hum_day_min?.[1] ?? null,
+      D: data.dew_current?.[1] ?? null,
+      P: data.bar_current?.[1] ?? null,
+      V: data.wspd_current?.[1] ?? null,
+      G: data.wspdhi_current?.[1] ?? null,
+      R: data.rain_current?.[1] ?? null,
+      RR: data.rainrate_current?.[1] ?? null,
+      WD: data.wdir_current?.[1] ?? null
     };
 
     lines.push(JSON.stringify(obj));
 
-    // Invio come NDJSON
     res.setHeader('Content-Type', 'application/json');
     res.send(lines.join("\n"));
   } catch (err) {
-    console.error('Errore generale:', err);
+    console.error(err);
     res.status(500).json({ error: err.message });
   }
 });
