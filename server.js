@@ -261,44 +261,24 @@ app.get('/meteo3r.json', async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+import puppeteer from 'puppeteer';
+
 app.get('/ecowitt.json', async (req, res) => {
-  try {
-    // URL API che fornisce direttamente il JSON (non HTML!)
-    const API_URL = 'https://corsproxy.io/?' + encodeURIComponent(
-      'https://app.weathercloud.net/device/stats/data?code=8840835265'
-    );
+  const browser = await puppeteer.launch({ headless: 'new' });
+  const page = await browser.newPage();
 
-    const response = await fetch(API_URL);
-    const data = await response.json(); // Ora è JSON diretto
+  await page.goto('https://app.weathercloud.net/device/stats?code=8840835265', { waitUntil: 'networkidle2' });
 
-    const timestamp = new Date().toISOString();
-    const lines = [JSON.stringify({ timestamp })];
+  // Esegui nel contesto della pagina
+  const data = await page.evaluate(() => {
+    return window.data || null; // qui serve sapere il nome della variabile JS
+  });
 
-    // Mappatura dei campi principali
-    const obj = {
-      T: data.temp_current?.[1] ?? null,
-      TH: data.temp_day_max?.[1] ?? null,
-      TL: data.temp_day_min?.[1] ?? null,
-      H: data.hum_current?.[1] ?? null,
-      HH: data.hum_day_max?.[1] ?? null,
-      HL: data.hum_day_min?.[1] ?? null,
-      D: data.dew_current?.[1] ?? null,
-      P: data.bar_current?.[1] ?? null,
-      V: data.wspd_current?.[1] ?? null,
-      G: data.wspdhi_current?.[1] ?? null,
-      R: data.rain_current?.[1] ?? null,
-      RR: data.rainrate_current?.[1] ?? null,
-      WD: data.wdir_current?.[1] ?? null
-    };
+  await browser.close();
 
-    lines.push(JSON.stringify(obj));
+  if (!data) return res.status(500).json({ error: 'Dati non trovati nel browser' });
 
-    res.setHeader('Content-Type', 'application/json');
-    res.send(lines.join("\n"));
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: err.message });
-  }
+  res.json(data);
 });
 
 // --- Nuovo endpoint LIMET ---
