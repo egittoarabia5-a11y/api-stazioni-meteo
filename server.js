@@ -430,7 +430,60 @@ app.get('/limet/:id.json', async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+const updateInterval = 10 * 60 * 1000; // 10 minuti
 
+async function aggiornaDatiLIMET() {
+  console.log("⏱️ Avvio aggiornamento LIMET...");
+
+  const baseURL = "https://api-stazioni-meteo.vercel.app";
+  const dailyDir = path.join(process.cwd(), "public", "Daily", "limet");
+
+  for (const id in stationsLIMET) {
+    try {
+      const res = await fetch(`${baseURL}/limet/${id}.json`);
+      if (!res.ok) throw new Error(`Errore fetch per ${id}`);
+
+      const data = await res.json();
+      if (!data || data.S !== "0" || typeof data.T !== "number") continue;
+
+      const now = new Date();
+      const dateKey = now.toLocaleDateString("it-IT").replace(/\//g, "-"); // "08-10-2025"
+      const hourKey = now.getHours().toString().padStart(2, "0");
+
+      // Percorso del file giornaliero
+      const filePath = path.join(dailyDir, `${id}.json`);
+
+      let jsonData = {};
+      try {
+        if (fs.existsSync(filePath)) {
+          jsonData = JSON.parse(fs.readFileSync(filePath, "utf-8"));
+        }
+      } catch (err) {
+        console.error(`Errore lettura ${id}.json:`, err);
+        jsonData = {};
+      }
+
+      if (!jsonData[dateKey]) jsonData[dateKey] = {};
+      if (!jsonData[dateKey][hourKey]) jsonData[dateKey][hourKey] = [];
+
+      // Aggiungi temperatura
+      jsonData[dateKey][hourKey].push(data.T);
+
+      // Salva file
+      fs.mkdirSync(path.dirname(filePath), { recursive: true });
+      fs.writeFileSync(filePath, JSON.stringify(jsonData, null, 2));
+
+      console.log(`✅ Salvato ${id} alle ${hourKey}:00 con T=${data.T}`);
+
+    } catch (err) {
+      console.error(`❌ Errore aggiornamento ${id}:`, err.message);
+    }
+  }
+}
+
+// Avvio immediato e poi ogni 10 minuti
+aggiornaDatiLIMET();
+setInterval(aggiornaDatiLIMET, updateInterval);
 // Rimuovi questa riga se usi Node 18+
 // const fetch = require('node-fetch');
 
