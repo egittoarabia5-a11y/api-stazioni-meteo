@@ -206,6 +206,60 @@ app.get('/torinometeo.json', async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+app.get('/astrogeo.json', async (req, res) => {
+  try {
+    const url = "https://www.astrogeo.va.it/data/stazioni/mappa_meteo.json";
+    const response = await fetch(url);
+    if (!response.ok) throw new Error("HTTP " + response.status);
+
+    const json = await response.json();
+    if (!json.dati || !Array.isArray(json.dati)) {
+      return res.status(500).json({ error: "Formato JSON inatteso" });
+    }
+
+    const timestamp = new Date().toISOString();
+    const lines = [JSON.stringify({ timestamp })];
+
+    json.dati.forEach(st => {
+      const nome = st.nome || st.cod;
+      const lat = parseFloat(st.lat);
+      const lon = parseFloat(st.lon);
+
+      const temp = st.tempcorr !== null ? parseFloat(st.tempcorr) : null;
+      const tempHigh = st.tempmax !== null ? parseFloat(st.tempmax) : null;
+      const tempLow = st.tempmin !== null ? parseFloat(st.tempmin) : null;
+
+      const hum = st.rhcorr !== null ? parseFloat(st.rhcorr) : null;
+      const humHigh = st.rhmax !== null ? parseFloat(st.rhmax) : null;
+      const humLow = st.rhmin !== null ? parseFloat(st.rhmin) : null;
+
+      const wind = st.ventocorr !== null ? parseFloat(st.ventocorr) : null;
+      const windGust = st.ventomax !== null ? parseFloat(st.ventomax) : null;
+      const rainDaily = st.pioggiacum !== null ? parseFloat(st.pioggiacum) : null;
+      const rainRate = st.pioggia10min !== null ? parseFloat(st.pioggia10min) : null;
+
+      const obj = {
+        S: (temp == null && hum == null && wind == null && rainDaily == null) ? "1" : "0",
+        N: nome,
+        T: temp, TH: tempHigh, TL: tempLow,
+        D: null, DH: null, DL: null,
+        H: hum, HH: humHigh, HL: humLow,
+        V: wind, G: windGust,
+        R: rainDaily, RR: rainRate,
+        LAT: lat, LON: lon
+      };
+
+      lines.push(JSON.stringify(obj));
+    });
+
+    res.setHeader("Content-Type", "application/json");
+    res.send(lines.join("\n"));
+
+  } catch (err) {
+    console.error("Errore fetch Astrogeo:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
 
 // --- Endpoint Meteo3R ---
 app.get('/meteo3r.json', async (req, res) => {
