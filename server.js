@@ -527,7 +527,6 @@ async function aggiornaDatiLIMET() {
       fs.mkdirSync(path.dirname(filePath), { recursive: true });
       fs.writeFileSync(filePath, JSON.stringify(jsonData, null, 2));
 
-      console.log(`✅ Salvato ${id} alle ${hourKey}:00 con T=${data.T}`);
 
     } catch (err) {
       console.error(`❌ Errore aggiornamento ${id}:`, err.message);
