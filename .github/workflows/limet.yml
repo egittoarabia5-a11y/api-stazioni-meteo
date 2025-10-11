@@ -1,8 +1,8 @@
 name: Aggiorna dati LIMET
-
 on:
   schedule:
-    - cron: "*/10 * * * *"  # ogni 10 minuti
+    - cron: "*/5 * * * *"
+
   workflow_dispatch:  # permette anche l'avvio manuale
 
 jobs:
