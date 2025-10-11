@@ -1,6 +1,6 @@
 import fs from "fs";
 import path from "path";
-import { stationsLIMET } from "./stationsLIMET.js";
+import stationsLIMET from "./stationsLIMET.js";
 
 const updateInterval = 10 * 60 * 1000; // 10 minuti
 const baseURL = "https://api-stazioni-meteo.vercel.app";
