@@ -1,4 +1,6 @@
 name: Aggiorna dati LIMET
+permissions:
+  contents: write
 on:
   schedule:
     - cron: "*/5 * * * *"
