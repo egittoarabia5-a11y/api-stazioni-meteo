@@ -1,0 +1,33 @@
+name: Aggiorna dati LIMET
+
+on:
+  schedule:
+    - cron: "*/10 * * * *"  # ogni 10 minuti
+  workflow_dispatch:  # permette anche l'avvio manuale
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Clona repository
+        uses: actions/checkout@v4
+
+      - name: Imposta Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Installa dipendenze
+        run: npm install
+
+      - name: Esegui aggiornamento LIMET
+        run: node aggiornaLimet.js
+
+      - name: Commit e push dei nuovi dati
+        run: |
+          git config --global user.name "GitHub Action"
+          git config --global user.email "actions@github.com"
+          git add public/Daily/limet/*.json
+          git commit -m "🔄 Aggiornamento automatico dati LIMET"
+          git push
+        continue-on-error: true
