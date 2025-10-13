@@ -1,40 +1,28 @@
 import fs from "fs";
 import path from "path";
-import fetch from "node-fetch";
-import stationsLIMET from "./stationsLIMET.js";
+import fetch from "node-fetch"; // se Node < 18
 
-const baseURL = "https://api-stazioni-meteo.vercel.app";
+const updateInterval = 10 * 60 * 1000; // 10 minuti
 const dailyDir = path.join(process.cwd(), "public", "Daily", "limet");
 
 async function aggiornaDatiLIMET() {
-  console.log("⏱️ Avvio aggiornamento LIMET...");
+  const now = new Date();
+  const dateKey = now.toLocaleDateString("it-IT").replace(/\//g, "-"); // "08-10-2025"
+  const hourKey = now.getHours().toString().padStart(2, "0");
 
   for (const id in stationsLIMET) {
-    const st = stationsLIMET[id];
-
     try {
-      const res = await fetch(`${baseURL}/limet/${id}.json`);
-      if (!res.ok) throw new Error(`Errore fetch per ${id}`);
+      const res = await fetch(`https://api-stazioni-meteo.vercel.app/limet/${id}.json`);
+      if (!res.ok) continue;
 
       const data = await res.json();
       if (!data || data.S !== "0" || typeof data.T !== "number") continue;
 
-      // Ora italiana
-      const nowIT = new Date(new Date().toLocaleString("it-IT", { timeZone: "Europe/Rome" }));
-      const dateKey = nowIT.toLocaleDateString("it-IT").replace(/\//g, "-"); // "08-10-2025"
-      const hourKey = nowIT.getHours().toString().padStart(2, "0");
-
-      // File giornaliero
       const filePath = path.join(dailyDir, `${id}.json`);
-
       let jsonData = {};
-      try {
-        if (fs.existsSync(filePath)) {
-          jsonData = JSON.parse(fs.readFileSync(filePath, "utf-8"));
-        }
-      } catch (err) {
-        console.error(`Errore lettura ${id}.json:`, err);
-        jsonData = {};
+
+      if (fs.existsSync(filePath)) {
+        jsonData = JSON.parse(fs.readFileSync(filePath, "utf-8"));
       }
 
       if (!jsonData[dateKey]) jsonData[dateKey] = {};
@@ -45,13 +33,12 @@ async function aggiornaDatiLIMET() {
       fs.mkdirSync(path.dirname(filePath), { recursive: true });
       fs.writeFileSync(filePath, JSON.stringify(jsonData, null, 2));
 
-      console.log(`✅ Aggiornati dati LIMET per ${id} - ${dateKey} ${hourKey}`);
-
     } catch (err) {
-      console.error(`❌ Errore aggiornamento ${id}:`, err.message);
+      console.error(`Errore aggiornamento ${id}:`, err.message);
     }
   }
 }
 
-// Avvio immediato
+// Avvia subito e ogni 10 minuti
 aggiornaDatiLIMET();
+setInterval(aggiornaDatiLIMET, updateInterval);
