@@ -1,16 +1,14 @@
-name: Aggiorna dati LIMET
-
-permissions:
-  contents: write
+name: Aggiornamento LIMET
 
 on:
   schedule:
-    - cron: "0,10,20,30,40,50 * * * *"
+    - cron: "0,10,20,30,40,50 * * * *" # ogni 10 minuti
   workflow_dispatch:
 
 jobs:
-  update:
+  aggiorna:
     runs-on: ubuntu-latest
+
     steps:
       - uses: actions/checkout@v3
 
@@ -19,16 +17,20 @@ jobs:
         with:
           node-version: 20
 
-      - name: Aggiorna dati LIMET
+      - name: Installa dipendenze
+        run: npm install node-fetch
+
+      - name: Aggiorna LIMET
         run: node aggiornaLimet.js
 
-      - name: Commit e push dei nuovi dati
+      - name: Commit e push modifiche
         run: |
           git config --global user.name "GitHub Action"
           git config --global user.email "actions@github.com"
-          git add .
+          git add public/Daily/limet/*.json
           git commit -m "🔄 Aggiornamento automatico dati LIMET" || echo "Nessuna modifica da commitare"
-          git push https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git HEAD:main
+          git push https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }} HEAD:main
 
-      - name: Trigger nuovo deploy su Vercel
-        run: curl -X POST "${{ secrets.VERCEL_HOOK }}"
+      - name: Trigger Vercel deploy
+        run: |
+          curl -X POST "https://api.vercel.com/v1/integrations/deploy/prj_xxxxxxxxxxxxxx/<token>"
