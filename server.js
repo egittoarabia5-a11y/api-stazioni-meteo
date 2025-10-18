@@ -377,26 +377,27 @@ const stationsNetAtmo = [ // Zona Genova Ovest / Centro
     const lines = [JSON.stringify({ timestamp })];
     const allStations = [];
 
-    for (const url of stationsNetAtmo) {
-      const response = await fetch(url);
-      if (!response.ok) throw new Error("HTTP " + response.status + " su " + url);
-      const data = await response.json();
-      if (!data.body || !Array.isArray(data.body)) continue;
-
+    const responses = await Promise.all(
+      stationsNetAtmo.map(url => fetch(url).then(r => r.json()).catch(() => null))
+    );
+    
+    for (const data of responses) {
+      if (!data || !data.body || !Array.isArray(data.body)) continue;
+    
       data.body.forEach(st => {
         const id = st._id;
         const name = (st.place?.street || st.place?.city || id).toLowerCase();
         const lat = parseFloat(st.place?.location?.[1]);
         const lon = parseFloat(st.place?.location?.[0]);
-
+    
         let temp = null, hum = null, press = null, t_corr = false;
-
+    
         if (st.measures) {
           for (const measure of Object.values(st.measures)) {
             const types = measure.type || [];
             const values = Object.values(measure.res || {})[0];
             if (!values) continue;
-
+    
             types.forEach((t, i) => {
               if (t === "temperature") temp = values[i];
               if (t === "humidity") hum = values[i];
@@ -404,7 +405,7 @@ const stationsNetAtmo = [ // Zona Genova Ovest / Centro
             });
           }
         }
-
+    
         // 🔥 Correggi temperatura e aggiungi flag t_corr
         for (const [key, correction] of Object.entries(tempCorrections)) {
           if (name.includes(key)) {
@@ -413,7 +414,7 @@ const stationsNetAtmo = [ // Zona Genova Ovest / Centro
             break;
           }
         }
-
+    
         const obj = {
           S: (temp == null && hum == null && press == null) ? "1" : "0",
           N: st.place?.street || st.place?.city || id,
@@ -426,7 +427,7 @@ const stationsNetAtmo = [ // Zona Genova Ovest / Centro
           LAT: lat, LON: lon,
           t_corr
         };
-
+    
         allStations.push(obj);
       });
     }
