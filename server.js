@@ -340,17 +340,82 @@ app.get('/netatmoLiguria.json', async (req, res) => {
       "https://app.netatmo.net/api/getpublicmeasures?limit=1&divider=7&quality=7&zoom=14&lat_ne=44.41808794374846&lon_ne=8.89892578125&lat_sw=44.402391829093915&lon_sw=8.876953125&date_end=last&access_token=52d42bfc1777599b298b456c%7Cfb7e4663b914d3ae3d36f23c65230494",
       "https://app.netatmo.net/api/getpublicmeasures?limit=1&divider=7&quality=7&zoom=14&lat_ne=44.43377984606822&lon_ne=8.89892578125&lat_sw=44.41808794374846&lon_sw=8.876953125&date_end=last&access_token=52d42bfc1777599b298b456c%7Cfb7e4663b914d3ae3d36f23c65230494",
       "https://app.netatmo.net/api/getpublicmeasures?limit=1&divider=7&quality=7&zoom=14&lat_ne=44.43377984606822&lon_ne=8.876953125&lat_sw=44.41808794374846&lon_sw=8.85498046875&date_end=last&access_token=52d42bfc1777599b298b456c%7Cfb7e4663b914d3ae3d36f23c65230494",
-    
+      
 
     ];
 
+
+    const tempCorrections = {
+      "via consiglietto": 2.0,
+      "via capolungo": 1.0,
+      "via commercio": 1.0,
+      "via del verme": 1.0,
+      "via gianelli": 1.0,
+      "viale quartara": 2.0,
+      "corso europa": 1.0,
+      "via palizzi": 2.0,
+      "viale teano": 1.5,
+      "via magnone": 2.0,
+      "via assab": 2.0,
+      "via isonzo": 1.0,
+      "via de gasperi": 2.0,
+      "via san nazaro": 1.0,
+      "via rivale": 1.5,
+      "corso saffi": 1.0,
+      "corso galilei": 1.0,
+      "via oliveri": 1.0,
+      "via giacometti": 1.0,
+      "via torti": 1.0,
+      "via imperiale": 1.0,
+      "via donghi": 2.0,
+      "via sotto il monte": 2.0,
+      "via berghini": 2.0,
+      "via cabella": 1.0,
+      "salita san rocchino": 1.0,
+      "via crocco": 2.0,
+      "via piaggio": 1.0,
+      "salita san simone": 3.0,
+      "via chiodo": 2.0,
+      "via preve": 1.0,
+      "via paolo della cella": 0.5,
+      "via saporiti": 2.0,
+      "passo ugo": 2.0,
+      "via boine": 1.0,
+      "via vesuvio": 1.0,
+      "via casartelli": 2.0,
+      "via s.marino": 2.0,
+      "via fra vince": 3.5,
+      "via faenza": 2.0,
+      "via milano": 1.0,
+      "vico del fieno": 1.5,
+      "salita re magi": 1.0,
+      "piazzetta ninfeo": 1.0,
+      "via della cella": 1.0,
+      "via avio": 0.5,
+      "via caveri": 2.0,
+      "via storace": 3.0,
+      "via landi": 3.0,
+      "via monti": 2.0,
+      "via powell": 2.0,
+      "salita crocetta": 3.0,
+      "via agosti": 2.0,
+      "via sessanta": 2.0,
+      "via calda": 1.0,
+      "genoa": 2.0,
+      "via san pantaleo": 4.0,
+      "via apparizione": 0.5,
+      "via borgoratti": 0.5,
+      "via canale": 0.5,
+      "via duse": 1.5,
+      "viale gambar": 1.0,
+      "via puggia": 1.0
+    };
 
     const timestamp = new Date().toISOString();
     const lines = [JSON.stringify({ timestamp })];
     const allStations = [];
 
-    // Fetch da tutti i link
-    for (const url of LinkLiguria) {
+    for (const url of stationsNetAtmo) {
       const response = await fetch(url);
       if (!response.ok) throw new Error("HTTP " + response.status + " su " + url);
       const data = await response.json();
@@ -358,14 +423,13 @@ app.get('/netatmoLiguria.json', async (req, res) => {
 
       data.body.forEach(st => {
         const id = st._id;
-        const name = st.place?.street || st.place?.city || id;
+        const name = (st.place?.street || st.place?.city || id).toLowerCase();
         const lat = parseFloat(st.place?.location?.[1]);
         const lon = parseFloat(st.place?.location?.[0]);
 
-        // Ricerca dei sensori
         let temp = null, hum = null, press = null;
         if (st.measures) {
-          for (const [moduleId, measure] of Object.entries(st.measures)) {
+          for (const [_, measure] of Object.entries(st.measures)) {
             const types = measure.type || [];
             const values = Object.values(measure.res || {})[0];
             if (!values) continue;
@@ -378,9 +442,17 @@ app.get('/netatmoLiguria.json', async (req, res) => {
           }
         }
 
+        // 🔥 Applica la correzione temperatura se il nome contiene una chiave
+        for (const [key, correction] of Object.entries(tempCorrections)) {
+          if (name.includes(key)) {
+            if (temp != null) temp = temp - correction;
+            break;
+          }
+        }
+
         const obj = {
           S: (temp == null && hum == null && press == null) ? "1" : "0",
-          N: name,
+          N: st.place?.street || st.place?.city || id,
           T: temp, TH: null, TL: null,
           D: null, DH: null, DL: null,
           H: hum, HH: null, HL: null,
@@ -394,7 +466,6 @@ app.get('/netatmoLiguria.json', async (req, res) => {
       });
     }
 
-    // Scrittura come nel tuo formato
     allStations.forEach(st => lines.push(JSON.stringify(st)));
 
     res.setHeader("Content-Type", "application/json");
