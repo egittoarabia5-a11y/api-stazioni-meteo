@@ -314,6 +314,7 @@ app.get('/meteo3r.json', async (req, res) => {
     console.error("Errore fetch Meteo3R:", err);
     res.status(500).json({ error: err.message });
   }
+  const stationsNetAtmo = {};
 });
 app.get('/netatmoLiguria.json', async (req, res) => {
   try {
