@@ -341,12 +341,16 @@ const stationsNetAtmo = [ // Zona Genova Ovest / Centro
 "https://app.netatmo.net/api/getpublicmeasures?limit=1&divider=7&quality=7&zoom=14&lat_ne=44.43377984606822&lon_ne=8.876953125&lat_sw=44.41808794374846&lon_sw=8.85498046875&date_end=last&access_token=52d42bfc1777599b298b456c%7Cfb7e4663b914d3ae3d36f23c65230494",
 "https://app.netatmo.net/api/getpublicmeasures?limit=1&divider=7&quality=7&zoom=14&lat_ne=44.43377984606822&lon_ne=8.85498046875&lat_sw=44.41808794374846&lon_sw=8.8330078125&date_end=last&access_token=52d42bfc1777599b298b456c%7Cfb7e4663b914d3ae3d36f23c65230494",
 "https://app.netatmo.net/api/getpublicmeasures?limit=1&divider=7&quality=7&zoom=14&lat_ne=44.449467536006935&lon_ne=8.876953125&lat_sw=44.43377984606822&lon_sw=8.85498046875&date_end=last&access_token=52d42bfc1777599b298b456c%7Cfb7e4663b914d3ae3d36f23c65230494",
-"https://app.netatmo.net/api/getpublicmeasures?limit=1&divider=7&quality=7&zoom=14&lat_ne=44.449467536006935&lon_ne=8.85498046875&lat_sw=44.43377984606822&lon_sw=8.8330078125&date_end=last&access_token=52d42bfc1777599b298b456c%7Cfb7e4663b914d3ae3d36f23c65230494",  
+"https://app.netatmo.net/api/getpublicmeasures?limit=1&divider=7&quality=7&zoom=14&lat_ne=44.449467536006935&lon_ne=8.85498046875&lat_sw=44.43377984606822&lon_sw=8.8330078125&date_end=last&access_token=52d42bfc1777599b298b456c%7Cfb7e4663b914d3ae3d36f23c65230494", 
+"https://app.netatmo.net/api/getpublicmeasures?limit=1&divider=7&quality=7&zoom=14&lat_ne=44.43377984606822&lon_ne=8.8330078125&lat_sw=44.41808794374846&lon_sw=8.81103515625&date_end=last&access_token=52d42bfc1777599b298b456c%7Cfb7e4663b914d3ae3d36f23c65230494",
+"https://app.netatmo.net/api/getpublicmeasures?limit=1&divider=7&quality=7&zoom=14&lat_ne=44.449467536006935&lon_ne=8.8330078125&lat_sw=44.43377984606822&lon_sw=8.81103515625&date_end=last&access_token=52d42bfc1777599b298b456c%7Cfb7e4663b914d3ae3d36f23c65230494",
+"https://app.netatmo.net/api/getpublicmeasures?limit=1&divider=7&quality=7&zoom=14&lat_ne=44.43377984606822&lon_ne=8.81103515625&lat_sw=44.41808794374846&lon_sw=8.7890625&date_end=last&access_token=52d42bfc1777599b298b456c%7Cfb7e4663b914d3ae3d36f23c65230494",
+"https://app.netatmo.net/api/getpublicmeasures?limit=1&divider=7&quality=7&zoom=14&lat_ne=44.449467536006935&lon_ne=8.81103515625&lat_sw=44.43377984606822&lon_sw=8.7890625&date_end=last&access_token=52d42bfc1777599b298b456c%7Cfb7e4663b914d3ae3d36f23c65230494", 
 ];
 
     const tempCorrections = {
-      "via consiglietto": 2.0, "via capolungo": 1.0, "via del commercio": 1.0,
-      "via del verme": 1.0, "via gianelli": 1.0, "viale quartara": 2.0,
+      "via consiglietto": 2.0, "via capolungo": 1.0, "via del commercio": 1.0, "via paolo boselli": 1.0, "traversa alla costa": 0.5, "unnamed road": 2.0, "via giovanni arrivabene": 2.0,
+      "via del verme": 1.0, "via gianelli": 1.0, "viale quartara": 2.0, "via francesco ravaschio": 2.0, "via gerolamo conestaggio": 1.0, "via luigi cibario": 2.0, "via monte sleme": 0.5,
       "corso europa": 1.0, "via filippo palizzi": 2.0, "viale teano": 1.5,
       "via giuseppe luciano magnone": 1.5, "via assab": 1.0, "via isonzo": 1.0,
       "via oreste de gaspari": 2.0, "via san nazaro": 0.5, "via rivale": 1.5,
