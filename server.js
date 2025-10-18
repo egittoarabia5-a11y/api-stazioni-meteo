@@ -333,11 +333,11 @@ app.get('/netatmoLiguria.json', async (req, res) => {
     ];
 
     const tempCorrections = {
-      "via consiglietto": 2.0, "via capolungo": 1.0, "via commercio": 1.0,
+      "via consiglietto": 2.0, "via capolungo": 1.0, "via del commercio": 1.0,
       "via del verme": 1.0, "via gianelli": 1.0, "viale quartara": 2.0,
       "corso europa": 1.0, "via palizzi": 2.0, "viale teano": 1.5,
-      "via magnone": 2.0, "via assab": 2.0, "via isonzo": 1.0,
-      "via de gasperi": 2.0, "via san nazaro": 1.0, "via rivale": 1.5,
+      "via giuseppe luciano magnone": 2.0, "via assab": 2.0, "via isonzo": 1.0,
+      "via oreste de gaspari": 2.0, "via san nazaro": 1.0, "via rivale": 1.5,
       "corso saffi": 1.0, "corso galilei": 1.0, "via oliveri": 1.0,
       "via giacometti": 1.0, "via torti": 1.0, "via imperiale": 1.0,
       "via donghi": 2.0, "via sotto il monte": 2.0, "via berghini": 2.0,
