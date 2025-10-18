@@ -317,20 +317,28 @@ app.get('/meteo3r.json', async (req, res) => {
 });
 app.get('/netatmoLiguria.json', async (req, res) => {
   try {
-    const stationsNetAtmo = [
-      // Zona Genova Ovest / Centro
-      "https://app.netatmo.net/api/getpublicmeasures?limit=1&divider=7&quality=7&zoom=13&lat_ne=44.402391829093915&lon_ne=8.96484375&lat_sw=44.37098696297173&lon_sw=8.9208984375&date_end=last&access_token=52d42bfc1777599b298b456c%7Cfb7e4663b914d3ae3d36f23c65230494", 
-      "https://app.netatmo.net/api/getpublicmeasures?limit=1&divider=7&quality=7&zoom=14&lat_ne=44.41808794374846&lon_ne=8.98681640625&lat_sw=44.402391829093915&lon_sw=8.96484375&date_end=last&access_token=52d42bfc1777599b298b456c%7Cfb7e4663b914d3ae3d36f23c65230494",
-      "https://app.netatmo.net/api/getpublicmeasures?limit=1&divider=7&quality=7&zoom=14&lat_ne=44.402391829093915&lon_ne=8.98681640625&lat_sw=44.38669150215206&lon_sw=8.96484375&date_end=last&access_token=52d42bfc1777599b298b456c%7Cfb7e4663b914d3ae3d36f23c65230494",
-      "https://app.netatmo.net/api/getpublicmeasures?limit=1&divider=7&quality=7&zoom=14&lat_ne=44.41808794374846&lon_ne=8.96484375&lat_sw=44.402391829093915&lon_sw=8.94287109375&date_end=last&access_token=52d42bfc1777599b298b456c%7Cfb7e4663b914d3ae3d36f23c65230494",
-      "https://app.netatmo.net/api/getpublicmeasures?limit=1&divider=7&quality=7&zoom=14&lat_ne=44.402391829093915&lon_ne=8.96484375&lat_sw=44.38669150215206&lon_sw=8.94287109375&date_end=last&access_token=52d42bfc1777599b298b456c%7Cfb7e4663b914d3ae3d36f23c65230494",
-      "https://app.netatmo.net/api/getpublicmeasures?limit=1&divider=7&quality=7&zoom=14&lat_ne=44.41808794374846&lon_ne=9.0087890625&lat_sw=44.402391829093915&lon_sw=8.98681640625&date_end=last&access_token=52d42bfc1777599b298b456c%7Cfb7e4663b914d3ae3d36f23c65230494",
-      "https://app.netatmo.net/api/getpublicmeasures?limit=1&divider=7&quality=7&zoom=14&lat_ne=44.402391829093915&lon_ne=9.0087890625&lat_sw=44.38669150215206&lon_sw=8.98681640625&date_end=last&access_token=52d42bfc1777599b298b456c%7Cfb7e4663b914d3ae3d36f23c65230494",
-      "https://app.netatmo.net/api/getpublicmeasures?limit=1&divider=7&quality=7&zoom=14&lat_ne=44.402391829093915&lon_ne=9.03076171875&lat_sw=44.38669150215206&lon_sw=9.0087890625&date_end=last&access_token=52d42bfc1777599b298b456c%7Cfb7e4663b914d3ae3d36f23c65230494",
-      "https://app.netatmo.net/api/getpublicmeasures?limit=1&divider=7&quality=7&zoom=14&lat_ne=44.38669150215206&lon_ne=9.03076171875&lat_sw=44.37098696297173&lon_sw=9.0087890625&date_end=last&access_token=52d42bfc1777599b298b456c%7Cfb7e4663b914d3ae3d36f23c65230494",
-      "https://app.netatmo.net/api/getpublicmeasures?limit=1&divider=7&quality=7&zoom=14&lat_ne=44.402391829093915&lon_ne=9.052734375&lat_sw=44.38669150215206&lon_sw=9.03076171875&date_end=last&access_token=52d42bfc1777599b298b456c%7Cfb7e4663b914d3ae3d36f23c65230494",
-      // (… altre URL come prima …)
-    ];
+const stationsNetAtmo = [ // Zona Genova Ovest / Centro 
+"https://app.netatmo.net/api/getpublicmeasures?limit=1&divider=7&quality=7&zoom=13&lat_ne=44.402391829093915&lon_ne=8.96484375&lat_sw=44.37098696297173&lon_sw=8.9208984375&date_end=last&access_token=52d42bfc1777599b298b456c%7Cfb7e4663b914d3ae3d36f23c65230494", 
+"https://app.netatmo.net/api/getpublicmeasures?limit=1&divider=7&quality=7&zoom=14&lat_ne=44.41808794374846&lon_ne=8.98681640625&lat_sw=44.402391829093915&lon_sw=8.96484375&date_end=last&access_token=52d42bfc1777599b298b456c%7Cfb7e4663b914d3ae3d36f23c65230494",
+"https://app.netatmo.net/api/getpublicmeasures?limit=1&divider=7&quality=7&zoom=14&lat_ne=44.402391829093915&lon_ne=8.98681640625&lat_sw=44.38669150215206&lon_sw=8.96484375&date_end=last&access_token=52d42bfc1777599b298b456c%7Cfb7e4663b914d3ae3d36f23c65230494",
+"https://app.netatmo.net/api/getpublicmeasures?limit=1&divider=7&quality=7&zoom=14&lat_ne=44.41808794374846&lon_ne=8.96484375&lat_sw=44.402391829093915&lon_sw=8.94287109375&date_end=last&access_token=52d42bfc1777599b298b456c%7Cfb7e4663b914d3ae3d36f23c65230494",
+"https://app.netatmo.net/api/getpublicmeasures?limit=1&divider=7&quality=7&zoom=14&lat_ne=44.402391829093915&lon_ne=8.96484375&lat_sw=44.38669150215206&lon_sw=8.94287109375&date_end=last&access_token=52d42bfc1777599b298b456c%7Cfb7e4663b914d3ae3d36f23c65230494",
+"https://app.netatmo.net/api/getpublicmeasures?limit=1&divider=7&quality=7&zoom=14&lat_ne=44.41808794374846&lon_ne=9.0087890625&lat_sw=44.402391829093915&lon_sw=8.98681640625&date_end=last&access_token=52d42bfc1777599b298b456c%7Cfb7e4663b914d3ae3d36f23c65230494",
+"https://app.netatmo.net/api/getpublicmeasures?limit=1&divider=7&quality=7&zoom=14&lat_ne=44.402391829093915&lon_ne=9.0087890625&lat_sw=44.38669150215206&lon_sw=8.98681640625&date_end=last&access_token=52d42bfc1777599b298b456c%7Cfb7e4663b914d3ae3d36f23c65230494",
+"https://app.netatmo.net/api/getpublicmeasures?limit=1&divider=7&quality=7&zoom=14&lat_ne=44.402391829093915&lon_ne=9.03076171875&lat_sw=44.38669150215206&lon_sw=9.0087890625&date_end=last&access_token=52d42bfc1777599b298b456c%7Cfb7e4663b914d3ae3d36f23c65230494",
+"https://app.netatmo.net/api/getpublicmeasures?limit=1&divider=7&quality=7&zoom=14&lat_ne=44.38669150215206&lon_ne=9.03076171875&lat_sw=44.37098696297173&lon_sw=9.0087890625&date_end=last&access_token=52d42bfc1777599b298b456c%7Cfb7e4663b914d3ae3d36f23c65230494", 
+"https://app.netatmo.net/api/getpublicmeasures?limit=1&divider=7&quality=7&zoom=14&lat_ne=44.402391829093915&lon_ne=9.052734375&lat_sw=44.38669150215206&lon_sw=9.03076171875&date_end=last&access_token=52d42bfc1777599b298b456c%7Cfb7e4663b914d3ae3d36f23c65230494", 
+"https://app.netatmo.net/api/getpublicmeasures?limit=1&divider=7&quality=7&zoom=14&lat_ne=44.38669150215206&lon_ne=9.052734375&lat_sw=44.37098696297173&lon_sw=9.03076171875&date_end=last&access_token=52d42bfc1777599b298b456c%7Cfb7e4663b914d3ae3d36f23c65230494", 
+"https://app.netatmo.net/api/getpublicmeasures?limit=1&divider=7&quality=7&zoom=14&lat_ne=44.38669150215206&lon_ne=9.07470703125&lat_sw=44.37098696297173&lon_sw=9.052734375&date_end=last&access_token=52d42bfc1777599b298b456c%7Cfb7e4663b914d3ae3d36f23c65230494", 
+"https://app.netatmo.net/api/getpublicmeasures?limit=1&divider=7&quality=7&zoom=14&lat_ne=44.38669150215206&lon_ne=9.0966796875&lat_sw=44.37098696297173&lon_sw=9.07470703125&date_end=last&access_token=52d42bfc1777599b298b456c%7Cfb7e4663b914d3ae3d36f23c65230494", 
+"https://app.netatmo.net/api/getpublicmeasures?limit=1&divider=7&quality=7&zoom=14&lat_ne=44.41808794374846&lon_ne=8.94287109375&lat_sw=44.402391829093915&lon_sw=8.9208984375&date_end=last&access_token=52d42bfc1777599b298b456c%7Cfb7e4663b914d3ae3d36f23c65230494", 
+"https://app.netatmo.net/api/getpublicmeasures?limit=1&divider=7&quality=7&zoom=14&lat_ne=44.402391829093915&lon_ne=8.94287109375&lat_sw=44.38669150215206&lon_sw=8.9208984375&date_end=last&access_token=52d42bfc1777599b298b456c%7Cfb7e4663b914d3ae3d36f23c65230494", 
+"https://app.netatmo.net/api/getpublicmeasures?limit=1&divider=7&quality=7&zoom=14&lat_ne=44.41808794374846&lon_ne=8.9208984375&lat_sw=44.402391829093915&lon_sw=8.89892578125&date_end=last&access_token=52d42bfc1777599b298b456c%7Cfb7e4663b914d3ae3d36f23c65230494", 
+"https://app.netatmo.net/api/getpublicmeasures?limit=1&divider=7&quality=7&zoom=14&lat_ne=44.43377984606822&lon_ne=8.94287109375&lat_sw=44.41808794374846&lon_sw=8.9208984375&date_end=last&access_token=52d42bfc1777599b298b456c%7Cfb7e4663b914d3ae3d36f23c65230494", 
+"https://app.netatmo.net/api/getpublicmeasures?limit=1&divider=7&quality=7&zoom=14&lat_ne=44.43377984606822&lon_ne=8.9208984375&lat_sw=44.41808794374846&lon_sw=8.89892578125&date_end=last&access_token=52d42bfc1777599b298b456c%7Cfb7e4663b914d3ae3d36f23c65230494", 
+"https://app.netatmo.net/api/getpublicmeasures?limit=1&divider=7&quality=7&zoom=14&lat_ne=44.41808794374846&lon_ne=8.89892578125&lat_sw=44.402391829093915&lon_sw=8.876953125&date_end=last&access_token=52d42bfc1777599b298b456c%7Cfb7e4663b914d3ae3d36f23c65230494", 
+"https://app.netatmo.net/api/getpublicmeasures?limit=1&divider=7&quality=7&zoom=14&lat_ne=44.43377984606822&lon_ne=8.89892578125&lat_sw=44.41808794374846&lon_sw=8.876953125&date_end=last&access_token=52d42bfc1777599b298b456c%7Cfb7e4663b914d3ae3d36f23c65230494", 
+"https://app.netatmo.net/api/getpublicmeasures?limit=1&divider=7&quality=7&zoom=14&lat_ne=44.43377984606822&lon_ne=8.876953125&lat_sw=44.41808794374846&lon_sw=8.85498046875&date_end=last&access_token=52d42bfc1777599b298b456c%7Cfb7e4663b914d3ae3d36f23c65230494", ];
 
     const tempCorrections = {
       "via consiglietto": 2.0, "via capolungo": 1.0, "via del commercio": 1.0,
@@ -352,7 +360,7 @@ app.get('/netatmoLiguria.json', async (req, res) => {
       "via gian battista monti": 2.0, "via robert baden powell": 2.0, "salita al forte della crocetta": 3.0,
       "via guido agosti": 2.0, "via dei sessanta": 2.0, "via ludovico calda": 1.0, "genoa": 2.0,
       "via san pantaleo": 4.0, "via apparizione": 0.5, "via borgoratti": 0.5,
-      "via fratelli canale": 0.5, "via eleonora duse": 1.5, "viale gambaro": 1.0, "via puggia": 1.0
+      "via fratelli canale": 0.5, "via eleonora duse": 1.5, "viale gambaro": 1.0, "via puggia": 1.0, "via bartolomeo bianco": 2.0,
     };
 
     const timestamp = new Date().toISOString();
