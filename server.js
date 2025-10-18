@@ -330,6 +330,8 @@ app.get('/netatmoLiguria.json', async (req, res) => {
       "https://app.netatmo.net/api/getpublicmeasures?limit=1&divider=7&quality=7&zoom=14&lat_ne=44.38669150215206&lon_ne=9.03076171875&lat_sw=44.37098696297173&lon_sw=9.0087890625&date_end=last&access_token=52d42bfc1777599b298b456c%7Cfb7e4663b914d3ae3d36f23c65230494",
       "https://app.netatmo.net/api/getpublicmeasures?limit=1&divider=7&quality=7&zoom=14&lat_ne=44.402391829093915&lon_ne=9.052734375&lat_sw=44.38669150215206&lon_sw=9.03076171875&date_end=last&access_token=52d42bfc1777599b298b456c%7Cfb7e4663b914d3ae3d36f23c65230494",
       "https://app.netatmo.net/api/getpublicmeasures?limit=1&divider=7&quality=7&zoom=14&lat_ne=44.38669150215206&lon_ne=9.052734375&lat_sw=44.37098696297173&lon_sw=9.03076171875&date_end=last&access_token=52d42bfc1777599b298b456c%7Cfb7e4663b914d3ae3d36f23c65230494",
+      "https://app.netatmo.net/api/getpublicmeasures?limit=1&divider=7&quality=7&zoom=14&lat_ne=44.38669150215206&lon_ne=9.07470703125&lat_sw=44.37098696297173&lon_sw=9.052734375&date_end=last&access_token=52d42bfc1777599b298b456c%7Cfb7e4663b914d3ae3d36f23c65230494",
+      "https://app.netatmo.net/api/getpublicmeasures?limit=1&divider=7&quality=7&zoom=14&lat_ne=44.38669150215206&lon_ne=9.0966796875&lat_sw=44.37098696297173&lon_sw=9.07470703125&date_end=last&access_token=52d42bfc1777599b298b456c%7Cfb7e4663b914d3ae3d36f23c65230494",
     ];
 
 
