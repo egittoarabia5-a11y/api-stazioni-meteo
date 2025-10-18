@@ -315,7 +315,7 @@ app.get('/meteo3r.json', async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
-app.get('/netatmo_liguria', async (req, res) => {
+app.get('/netatmoLiguria.json', async (req, res) => {
   try {
     const LinkLiguria = [
       "https://app.netatmo.net/api/getpublicmeasures?limit=1&divider=7&quality=7&zoom=13&lat_ne=44.402391829093915&lon_ne=8.96484375&lat_sw=44.37098696297173&lon_sw=8.9208984375&date_end=last&access_token=52d42bfc1777599b298b456c%7Cfb7e4663b914d3ae3d36f23c65230494"
