@@ -338,7 +338,11 @@ const stationsNetAtmo = [ // Zona Genova Ovest / Centro
 "https://app.netatmo.net/api/getpublicmeasures?limit=1&divider=7&quality=7&zoom=14&lat_ne=44.43377984606822&lon_ne=8.9208984375&lat_sw=44.41808794374846&lon_sw=8.89892578125&date_end=last&access_token=52d42bfc1777599b298b456c%7Cfb7e4663b914d3ae3d36f23c65230494", 
 "https://app.netatmo.net/api/getpublicmeasures?limit=1&divider=7&quality=7&zoom=14&lat_ne=44.41808794374846&lon_ne=8.89892578125&lat_sw=44.402391829093915&lon_sw=8.876953125&date_end=last&access_token=52d42bfc1777599b298b456c%7Cfb7e4663b914d3ae3d36f23c65230494", 
 "https://app.netatmo.net/api/getpublicmeasures?limit=1&divider=7&quality=7&zoom=14&lat_ne=44.43377984606822&lon_ne=8.89892578125&lat_sw=44.41808794374846&lon_sw=8.876953125&date_end=last&access_token=52d42bfc1777599b298b456c%7Cfb7e4663b914d3ae3d36f23c65230494", 
-"https://app.netatmo.net/api/getpublicmeasures?limit=1&divider=7&quality=7&zoom=14&lat_ne=44.43377984606822&lon_ne=8.876953125&lat_sw=44.41808794374846&lon_sw=8.85498046875&date_end=last&access_token=52d42bfc1777599b298b456c%7Cfb7e4663b914d3ae3d36f23c65230494", ];
+"https://app.netatmo.net/api/getpublicmeasures?limit=1&divider=7&quality=7&zoom=14&lat_ne=44.43377984606822&lon_ne=8.876953125&lat_sw=44.41808794374846&lon_sw=8.85498046875&date_end=last&access_token=52d42bfc1777599b298b456c%7Cfb7e4663b914d3ae3d36f23c65230494",
+"https://app.netatmo.net/api/getpublicmeasures?limit=1&divider=7&quality=7&zoom=14&lat_ne=44.43377984606822&lon_ne=8.85498046875&lat_sw=44.41808794374846&lon_sw=8.8330078125&date_end=last&access_token=52d42bfc1777599b298b456c%7Cfb7e4663b914d3ae3d36f23c65230494",
+"https://app.netatmo.net/api/getpublicmeasures?limit=1&divider=7&quality=7&zoom=14&lat_ne=44.449467536006935&lon_ne=8.876953125&lat_sw=44.43377984606822&lon_sw=8.85498046875&date_end=last&access_token=52d42bfc1777599b298b456c%7Cfb7e4663b914d3ae3d36f23c65230494",
+"https://app.netatmo.net/api/getpublicmeasures?limit=1&divider=7&quality=7&zoom=14&lat_ne=44.449467536006935&lon_ne=8.85498046875&lat_sw=44.43377984606822&lon_sw=8.8330078125&date_end=last&access_token=52d42bfc1777599b298b456c%7Cfb7e4663b914d3ae3d36f23c65230494",  
+];
 
     const tempCorrections = {
       "via consiglietto": 2.0, "via capolungo": 1.0, "via del commercio": 1.0,
@@ -359,7 +363,7 @@ const stationsNetAtmo = [ // Zona Genova Ovest / Centro
       "via federico avio": 0.5, "via antonio caveri": 2.0, "via dante gaetano storace": 3.0, "via dei landi": 2.0,
       "via gian battista monti": 1.5, "via robert baden powell": 2.0, "salita al forte della crocetta": 3.0,
       "via guido agosti": 2.0, "via dei sessanta": 2.0, "via ludovico calda": 1.5, "genoa": 2.0,
-      "via san pantaleo": 4.0, "via apparizione": 0.5, "via borgoratti": 1.5, "A12": 3.5, "via gantonio cianciullo": 1.5, "via flavia steno": 3.0, "via brigata salerno": 2.0,
+      "via san pantaleo": 4.0, "via apparizione": 0.5, "via borgoratti": 1.5, "a12": 3.5, "via antonio cianciullo": 1.5, "via flavia steno": 3.0, "via brigata salerno": 2.0,
       "via fratelli canale": 0.5, "via eleonora duse": 1.5, "viale gambaro": 1.0, "via puggia": 0.5, "via bartolomeo bianco": 2.0,
     };
 
