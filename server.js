@@ -348,7 +348,7 @@ const stationsNetAtmo = [ // Zona Genova Ovest / Centro
       "via oreste de gaspari": 2.0, "via san nazaro": 0.5, "via rivale": 1.5,
       "corso aurelio saffi": 1.0, "corso galilei": 1.0, "via oliveri": 1.0, "via domenico chiodo": 2.0,
       "via giacometti": 1.0, "via torti": 1.0, "via imperiale": 1.0,
-      "via donghi": 2.0, "via sotto il monte": 2.0, "via berghini": 2.0,
+      "via donghi": 2.0, "via sotto il monte": 2.0, "via pasquale berghini": 2.0,
       "via cabella": 1.0, "salita san rocchino": 1.0, "via antonio crocco": 1.0,
       "via piaggio": 1.0, "salita superiore san simone": 1.5, "via domenico chiodo": 2.5, "via ausonia": 2.5,
       "via preve": 1.0, "via paolo della cella": 0.5, "via saporiti": 2.0,
@@ -359,7 +359,7 @@ const stationsNetAtmo = [ // Zona Genova Ovest / Centro
       "via federico avio": 0.5, "via antonio caveri": 2.0, "via dante gaetano storace": 3.0, "via dei landi": 2.0,
       "via gian battista monti": 1.5, "via robert baden powell": 2.0, "salita al forte della crocetta": 3.0,
       "via guido agosti": 2.0, "via dei sessanta": 2.0, "via ludovico calda": 1.0, "genoa": 2.0,
-      "via san pantaleo": 4.0, "via apparizione": 0.5, "via borgoratti": 0.5,
+      "via san pantaleo": 4.0, "via apparizione": 0.5, "via borgoratti": 1.5,
       "via fratelli canale": 0.5, "via eleonora duse": 1.5, "viale gambaro": 1.0, "via puggia": 1.0, "via bartolomeo bianco": 2.0,
     };
 
