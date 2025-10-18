@@ -475,7 +475,6 @@ app.get('/netatmoLiguria.json', async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
-
 // --- Nuovo endpoint LIMET ---
 const stationsLIMET = {
   Molassana: { link: "terzereti", lat: 44.461, lon: 8.987 },
