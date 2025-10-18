@@ -335,7 +335,7 @@ app.get('/netatmoLiguria.json', async (req, res) => {
     const tempCorrections = {
       "via consiglietto": 2.0, "via capolungo": 1.0, "via del commercio": 1.0,
       "via del verme": 1.0, "via gianelli": 1.0, "viale quartara": 2.0,
-      "corso europa": 1.0, "via palizzi": 2.0, "viale teano": 1.5,
+      "corso europa": 1.0, "via filippo palizzi": 2.0, "viale teano": 1.5,
       "via giuseppe luciano magnone": 2.0, "via assab": 2.0, "via isonzo": 1.0,
       "via oreste de gaspari": 2.0, "via san nazaro": 1.0, "via rivale": 1.5,
       "corso saffi": 1.0, "corso galilei": 1.0, "via oliveri": 1.0,
@@ -348,11 +348,11 @@ app.get('/netatmoLiguria.json', async (req, res) => {
       "via casartelli": 2.0, "via s.marino": 2.0, "via fra vince": 3.5,
       "via faenza": 2.0, "via milano": 1.0, "vico del fieno": 1.5,
       "salita re magi": 1.0, "piazzetta ninfeo": 1.0, "via della cella": 1.0,
-      "via avio": 0.5, "via caveri": 2.0, "via storace": 3.0, "via landi": 3.0,
-      "via monti": 2.0, "via powell": 2.0, "salita crocetta": 3.0,
-      "via agosti": 2.0, "via sessanta": 2.0, "via calda": 1.0, "genoa": 2.0,
+      "via federico avio": 0.5, "via antonio caveri": 2.0, "via dante gaetano storace": 3.0, "via dei landi": 3.0,
+      "via gian battista monti": 2.0, "via robert baden powell": 2.0, "salita al forte della crocetta": 3.0,
+      "via guido agosti": 2.0, "via dei sessanta": 2.0, "via ludovico calda": 1.0, "genoa": 2.0,
       "via san pantaleo": 4.0, "via apparizione": 0.5, "via borgoratti": 0.5,
-      "via canale": 0.5, "via duse": 1.5, "viale gambar": 1.0, "via puggia": 1.0
+      "via fratelli canale": 0.5, "via eleonora duse": 1.5, "viale gambaro": 1.0, "via puggia": 1.0
     };
 
     const timestamp = new Date().toISOString();
