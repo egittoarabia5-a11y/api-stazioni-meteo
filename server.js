@@ -315,6 +315,83 @@ app.get('/meteo3r.json', async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+app.get('/netatmoLiguria.json', async (req, res) => {
+  try {
+    const LinkLiguria = [
+      // Zona Genova Ovest / Centro
+      "https://app.netatmo.net/api/getpublicmeasures?limit=1&divider=7&quality=7&zoom=13&lat_ne=44.402391829093915&lon_ne=8.96484375&lat_sw=44.37098696297173&lon_sw=8.9208984375&date_end=last&access_token=52d42bfc1777599b298b456c%7Cfb7e4663b914d3ae3d36f23c65230494", 
+      "https://app.netatmo.net/api/getpublicmeasures?limit=1&divider=7&quality=7&zoom=14&lat_ne=44.41808794374846&lon_ne=8.98681640625&lat_sw=44.402391829093915&lon_sw=8.96484375&date_end=last&access_token=52d42bfc1777599b298b456c%7Cfb7e4663b914d3ae3d36f23c65230494",
+      "https://app.netatmo.net/api/getpublicmeasures?limit=1&divider=7&quality=7&zoom=14&lat_ne=44.402391829093915&lon_ne=8.98681640625&lat_sw=44.38669150215206&lon_sw=8.96484375&date_end=last&access_token=52d42bfc1777599b298b456c%7Cfb7e4663b914d3ae3d36f23c65230494",
+      "https://app.netatmo.net/api/getpublicmeasures?limit=1&divider=7&quality=7&zoom=14&lat_ne=44.41808794374846&lon_ne=8.96484375&lat_sw=44.402391829093915&lon_sw=8.94287109375&date_end=last&access_token=52d42bfc1777599b298b456c%7Cfb7e4663b914d3ae3d36f23c65230494",
+      "https://app.netatmo.net/api/getpublicmeasures?limit=1&divider=7&quality=7&zoom=14&lat_ne=44.402391829093915&lon_ne=8.96484375&lat_sw=44.38669150215206&lon_sw=8.94287109375&date_end=last&access_token=52d42bfc1777599b298b456c%7Cfb7e4663b914d3ae3d36f23c65230494",
+      "https://app.netatmo.net/api/getpublicmeasures?limit=1&divider=7&quality=7&zoom=14&lat_ne=44.41808794374846&lon_ne=9.0087890625&lat_sw=44.402391829093915&lon_sw=8.98681640625&date_end=last&access_token=52d42bfc1777599b298b456c%7Cfb7e4663b914d3ae3d36f23c65230494",
+      "https://app.netatmo.net/api/getpublicmeasures?limit=1&divider=7&quality=7&zoom=14&lat_ne=44.402391829093915&lon_ne=9.0087890625&lat_sw=44.38669150215206&lon_sw=8.98681640625&date_end=last&access_token=52d42bfc1777599b298b456c%7Cfb7e4663b914d3ae3d36f23c65230494",
+      "https://app.netatmo.net/api/getpublicmeasures?limit=1&divider=7&quality=7&zoom=14&lat_ne=44.402391829093915&lon_ne=9.03076171875&lat_sw=44.38669150215206&lon_sw=9.0087890625&date_end=last&access_token=52d42bfc1777599b298b456c%7Cfb7e4663b914d3ae3d36f23c65230494",
+      "https://app.netatmo.net/api/getpublicmeasures?limit=1&divider=7&quality=7&zoom=14&lat_ne=44.38669150215206&lon_ne=9.03076171875&lat_sw=44.37098696297173&lon_sw=9.0087890625&date_end=last&access_token=52d42bfc1777599b298b456c%7Cfb7e4663b914d3ae3d36f23c65230494",
+      "https://app.netatmo.net/api/getpublicmeasures?limit=1&divider=7&quality=7&zoom=14&lat_ne=44.402391829093915&lon_ne=9.052734375&lat_sw=44.38669150215206&lon_sw=9.03076171875&date_end=last&access_token=52d42bfc1777599b298b456c%7Cfb7e4663b914d3ae3d36f23c65230494",
+      "https://app.netatmo.net/api/getpublicmeasures?limit=1&divider=7&quality=7&zoom=14&lat_ne=44.38669150215206&lon_ne=9.052734375&lat_sw=44.37098696297173&lon_sw=9.03076171875&date_end=last&access_token=52d42bfc1777599b298b456c%7Cfb7e4663b914d3ae3d36f23c65230494",
+    ];
+
+
+    const timestamp = new Date().toISOString();
+    const lines = [JSON.stringify({ timestamp })];
+    const allStations = [];
+
+    // Fetch da tutti i link
+    for (const url of LinkLiguria) {
+      const response = await fetch(url);
+      if (!response.ok) throw new Error("HTTP " + response.status + " su " + url);
+      const data = await response.json();
+      if (!data.body || !Array.isArray(data.body)) continue;
+
+      data.body.forEach(st => {
+        const id = st._id;
+        const name = st.place?.street || st.place?.city || id;
+        const lat = parseFloat(st.place?.location?.[1]);
+        const lon = parseFloat(st.place?.location?.[0]);
+
+        // Ricerca dei sensori
+        let temp = null, hum = null, press = null;
+        if (st.measures) {
+          for (const [moduleId, measure] of Object.entries(st.measures)) {
+            const types = measure.type || [];
+            const values = Object.values(measure.res || {})[0];
+            if (!values) continue;
+
+            types.forEach((t, i) => {
+              if (t === "temperature") temp = values[i];
+              if (t === "humidity") hum = values[i];
+              if (t === "pressure") press = values[i];
+            });
+          }
+        }
+
+        const obj = {
+          S: (temp == null && hum == null && press == null) ? "1" : "0",
+          N: name,
+          T: temp, TH: null, TL: null,
+          D: null, DH: null, DL: null,
+          H: hum, HH: null, HL: null,
+          V: null, G: null,
+          R: null, RR: null,
+          P: press,
+          LAT: lat, LON: lon
+        };
+
+        allStations.push(obj);
+      });
+    }
+
+    // Scrittura come nel tuo formato
+    allStations.forEach(st => lines.push(JSON.stringify(st)));
+
+    res.setHeader("Content-Type", "application/json");
+    res.send(lines.join("\n"));
+  } catch (err) {
+    console.error("Errore fetch Netatmo Liguria:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
 
 // --- Nuovo endpoint LIMET ---
 const stationsLIMET = {
