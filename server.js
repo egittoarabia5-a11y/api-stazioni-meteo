@@ -356,12 +356,11 @@ const allowedExactNames = [
   "via dei vassalli"
 ];
 
-// normalizza le allowed names nello stesso modo in cui normalizzeremo i nomi estratti
 const normalizeForExactMatch = s =>
   (s ?? "")
-    .normalize('NFC')         // normalizza unicode (accents)
-    .replace(/\s+/g, ' ')     // collapse multiple spaces
-    .trim();                  // trim
+    .normalize('NFC')
+    .replace(/\s+/g, ' ')
+    .trim();
 
 const allowedNormalized = new Set(allowedExactNames.map(normalizeForExactMatch));
 
@@ -369,7 +368,6 @@ const timestamp = new Date().toISOString();
 const lines = [JSON.stringify({ timestamp })];
 const allStations = [];
 
-// fetch parallelo
 const responses = await Promise.all(
   stationsNetAtmo.map(url =>
     fetch(url)
@@ -381,35 +379,40 @@ const responses = await Promise.all(
 for (const data of responses) {
   if (!data || !data.body || !Array.isArray(data.body)) continue;
 
-  data.body.forEach(st => {
-    // Prendiamo diversi campi possibili dove può esserci il nome
+  for (const st of data.body) {
     const candidates = [
       st.place?.street,
       st.place?.city,
-      st.place?.name, // talvolta esistono campi diversi
+      st.place?.name,
       st._id
     ];
 
-    // normalizziamo ogni candidato e controlliamo se uno corrisponde ESATTAMENTE
     let matchedName = null;
+    console.log("----- STAZIONE -----");
+    console.log("Candidati grezzi:", candidates);
+
     for (const raw of candidates) {
       if (!raw) continue;
       const norm = normalizeForExactMatch(raw);
-      if (allowedNormalized.has(norm)) {
-        matchedName = raw; // manteniamo la versione originale (non normalizzata) per N nel JSON
+      const match = allowedNormalized.has(norm);
+      console.log(`→ "${raw}" → normalizzato: "${norm}" → match: ${match}`);
+      if (match) {
+        matchedName = raw;
         break;
       }
     }
-    if (!matchedName) return; // scarta se nessun campo è esattamente uguale
 
-    // se arriviamo qui, la stazione è consentita: estraiamo coordinate e misure
-    const id = st._id;
-    const nameToUse = matchedName;
+    if (!matchedName) {
+      console.log("❌ Nessuna corrispondenza trovata, stazione scartata.\n");
+      continue;
+    }
+
+    console.log(`✅ ACCETTATA: ${matchedName}\n`);
+
     const lat = parseFloat(st.place?.location?.[1]) || null;
     const lon = parseFloat(st.place?.location?.[0]) || null;
 
     let temp = null, hum = null, press = null, t_corr = false;
-
     if (st.measures) {
       for (const measure of Object.values(st.measures)) {
         const types = measure.type || [];
@@ -426,7 +429,7 @@ for (const data of responses) {
 
     const obj = {
       S: (temp == null && hum == null && press == null) ? "1" : "0",
-      N: nameToUse,
+      N: matchedName,
       T: temp, TH: null, TL: null,
       D: null, DH: null, DL: null,
       H: hum, HH: null, HL: null,
@@ -438,7 +441,7 @@ for (const data of responses) {
     };
 
     allStations.push(obj);
-  });
+  }
 }
 
 allStations.forEach(st => lines.push(JSON.stringify(st)));
