@@ -350,96 +350,72 @@ const stationsNetAtmo = [ // Zona Genova Ovest / Centro
 "https://app.netatmo.net/api/getpublicmeasures?limit=1&divider=7&quality=7&zoom=14&lat_ne=44.43377984606822&lon_ne=8.76708984375&lat_sw=44.41808794374846&lon_sw=8.7451171875&date_end=last&access_token=52d42bfc1777599b298b456c%7Cfb7e4663b914d3ae3d36f23c65230494", 
 ];
 
-    const tempCorrections = {
-      "via consiglietto": 2.0, "via capolungo": 1.0, "via del commercio": 1.0, "via paolo boselli": 1.0, "traversa alla costa": 0.5, "unnamed road": 2.0, "via giovanni arrivabene": 2.0, "via fiume": 0.5,
-      "via del verme": 1.0, "via gianelli": 1.0, "viale quartara": 2.0, "via francesco ravaschio": 2.0, "via gerolamo conestaggio": 1.0, "via luigi cibrario": 2.0, "via monte sleme": 0.5,
-      "corso europa": 1.0, "via filippo palizzi": 2.0, "viale teano": 1.5,
-      "via giuseppe luciano magnone": 1.5, "via assab": 1.0, "via isonzo": 1.0,
-      "via oreste de gaspari": 2.0, "via san nazaro": 0.5, "via rivale": 1.5,
-      "corso aurelio saffi": 1.0, "corso galilei": 1.0, "via oliveri": 1.0, "via domenico chiodo": 2.0, "via ignazio pallavicini": 0.5, "via martiri della libertà": 0.5,
-      "via giacometti": 1.0, "via giovanni torti": 2.5, "via imperiale": 1.0, "via emilio salgari": 2.0, "via amerigo vespucci": 1.0, "via della torrazza": 1.0,
-      "via donghi": 2.0, "via sotto il monte": 2.0, "via pasquale berghini": 2.0,
-      "via cabella": 1.0, "salita san rocchino": 1.0, "via antonio crocco": 1.0, "salita della provvidenza": 2.5,
-      "salita superiore san simone": 1.5, "via domenico chiodo": 2.5, "via ausonia": 2.5,
-      "via preve": 1.0, "via paolo della cella": 0.5, "via saporiti": 2.0,
-      "passo ugo": 2.0, "via boine": 1.0, "via vesuvio": 1.0, "via degli iris": 1.5, "via delle eriche": 2.0,
-      "via casartelli": 2.0, "via san marino": 2.0, "via fra vince": 3.5, "via bari": 1.0, "via giovanni casartelli": 1.5, "via giovanni boine": 1.0,
-      "via faenza": 1.5, "via milano": 1.0, "vico del fieno": 1.5, "via giuseppe maria saporiti": 1.5, "via paleocapa": 3.0, "via eugenio baroni": 2.0,
-      "salita re magi": 1.0, "piazzetta ninfeo": 1.0, "via paolo della cella": 0.5, "via rinaldo rigola": 1.5,
-      "via federico avio": 0.5, "via antonio caveri": 2.0, "via dante gaetano storace": 3.0, "via dei landi": 2.0,
-      "via gian battista monti": 1.5, "via robert baden powell": 2.0, "salita al forte della crocetta": 3.0,
-      "via guido agosti": 2.0, "via dei sessanta": 2.0, "via ludovico calda": 1.5, "genoa": 2.0,
-      "via san pantaleo": 4.0, "via apparizione": 0.5, "via borgoratti": 1.5, "a12": 3.5, "via antonio cianciullo": 1.5, "via flavia steno": 3.0, "via brigata salerno": 2.0,
-      "via fratelli canale": 0.5, "via eleonora duse": 1.5, "viale gambaro": 1.0, "via puggia": 0.5, "via bartolomeo bianco": 2.0,
-    };
+const allowedNames = ["via giusepe mazzini", "via cianà", "via dei vassalli"];
 
-    const timestamp = new Date().toISOString();
-    const lines = [JSON.stringify({ timestamp })];
-    const allStations = [];
+const timestamp = new Date().toISOString();
+const lines = [JSON.stringify({ timestamp })];
+const allStations = [];
 
-    const responses = await Promise.all(
-      stationsNetAtmo.map(url => fetch(url).then(r => r.json()).catch(() => null))
-    );
-    
-    for (const data of responses) {
-      if (!data || !data.body || !Array.isArray(data.body)) continue;
-    
-      data.body.forEach(st => {
-        const id = st._id;
-        const name = (st.place?.street || st.place?.city || id).toLowerCase();
-        const lat = parseFloat(st.place?.location?.[1]);
-        const lon = parseFloat(st.place?.location?.[0]);
-    
-        let temp = null, hum = null, press = null, t_corr = false;
-    
-        if (st.measures) {
-          for (const measure of Object.values(st.measures)) {
-            const types = measure.type || [];
-            const values = Object.values(measure.res || {})[0];
-            if (!values) continue;
-    
-            types.forEach((t, i) => {
-              if (t === "temperature") temp = values[i];
-              if (t === "humidity") hum = values[i];
-              if (t === "pressure") press = values[i];
-            });
-          }
-        }
-    
-        // 🔥 Correggi temperatura e aggiungi flag t_corr
-        for (const [key, correction] of Object.entries(tempCorrections)) {
-          if (name.includes(key)) {
-            if (temp != null) temp -= correction;
-            t_corr = true;
-            break;
-          }
-        }
-    
-        const obj = {
-          S: (temp == null && hum == null && press == null) ? "1" : "0",
-          N: st.place?.street || st.place?.city || id,
-          T: temp, TH: null, TL: null,
-          D: null, DH: null, DL: null,
-          H: hum, HH: null, HL: null,
-          V: null, G: null,
-          R: null, RR: null,
-          P: press,
-          LAT: lat, LON: lon,
-          t_corr
-        };
-    
-        allStations.push(obj);
-      });
+// ⚡ fetch in parallelo
+const responses = await Promise.all(
+  stationsNetAtmo.map(url => fetch(url).then(r => r.json()).catch(() => null))
+);
+
+for (const data of responses) {
+  if (!data || !data.body || !Array.isArray(data.body)) continue;
+
+  data.body.forEach(st => {
+    const id = st._id;
+    const name = (st.place?.street || st.place?.city || id);
+    const lowerName = name.toLowerCase();
+
+    // ❌ filtra solo le stazioni ammesse
+    const isAllowed = allowedNames.some(n => lowerName.includes(n));
+    if (!isAllowed) return;
+
+    const lat = parseFloat(st.place?.location?.[1]);
+    const lon = parseFloat(st.place?.location?.[0]);
+
+    let temp = null, hum = null, press = null;
+
+    if (st.measures) {
+      for (const measure of Object.values(st.measures)) {
+        const types = measure.type || [];
+        const values = Object.values(measure.res || {})[0];
+        if (!values) continue;
+
+        types.forEach((t, i) => {
+          if (t === "temperature") temp = values[i];
+          if (t === "humidity") hum = values[i];
+          if (t === "pressure") press = values[i];
+        });
+      }
     }
 
-    allStations.forEach(st => lines.push(JSON.stringify(st)));
+    const obj = {
+      S: (temp == null && hum == null && press == null) ? "1" : "0",
+      N: name,
+      T: temp, TH: null, TL: null,
+      D: null, DH: null, DL: null,
+      H: hum, HH: null, HL: null,
+      V: null, G: null,
+      R: null, RR: null,
+      P: press,
+      LAT: lat, LON: lon
+    };
 
-    res.setHeader("Content-Type", "application/json");
-    res.send(lines.join("\n"));
-  } catch (err) {
-    console.error("Errore fetch Netatmo Liguria:", err);
-    res.status(500).json({ error: err.message });
-  }
+    allStations.push(obj);
+  });
+}
+
+allStations.forEach(st => lines.push(JSON.stringify(st)));
+
+res.setHeader("Content-Type", "application/json");
+res.send(lines.join("\n"));
+} catch (err) {
+console.error("Errore fetch Netatmo Liguria:", err);
+res.status(500).json({ error: err.message });
+}
 });
 
 // --- Nuovo endpoint LIMET ---
