@@ -356,11 +356,20 @@ const allowedExactNames = [
   "via dei vassalli"
 ];
 
+// normalizza le allowed names nello stesso modo in cui normalizzeremo i nomi estratti
+const normalizeForExactMatch = s =>
+  (s ?? "")
+    .normalize('NFC')         // normalizza unicode (accents)
+    .replace(/\s+/g, ' ')     // collapse multiple spaces
+    .trim();                  // trim
+
+const allowedNormalized = new Set(allowedExactNames.map(normalizeForExactMatch));
+
 const timestamp = new Date().toISOString();
 const lines = [JSON.stringify({ timestamp })];
 const allStations = [];
 
-// Fetch parallelo: ottieni i JSON (se una fetch fallisce ritorna null)
+// fetch parallelo
 const responses = await Promise.all(
   stationsNetAtmo.map(url =>
     fetch(url)
@@ -373,20 +382,31 @@ for (const data of responses) {
   if (!data || !data.body || !Array.isArray(data.body)) continue;
 
   data.body.forEach(st => {
+    // Prendiamo diversi campi possibili dove può esserci il nome
+    const candidates = [
+      st.place?.street,
+      st.place?.city,
+      st.place?.name, // talvolta esistono campi diversi
+      st._id
+    ];
+
+    // normalizziamo ogni candidato e controlliamo se uno corrisponde ESATTAMENTE
+    let matchedName = null;
+    for (const raw of candidates) {
+      if (!raw) continue;
+      const norm = normalizeForExactMatch(raw);
+      if (allowedNormalized.has(norm)) {
+        matchedName = raw; // manteniamo la versione originale (non normalizzata) per N nel JSON
+        break;
+      }
+    }
+    if (!matchedName) return; // scarta se nessun campo è esattamente uguale
+
+    // se arriviamo qui, la stazione è consentita: estraiamo coordinate e misure
     const id = st._id;
-    // usa street se presente, altrimenti city; se entrambi assenti usa id
-    const rawName = st.place?.street ?? st.place?.city ?? id;
-
-    // Se vuoi controllo strettamente sui caratteri così come sono, fai confronto diretto:
-    // la lista allowedExactNames contiene le stringhe che devono essere esattamente identiche.
-    // Se desideri che la comparazione sia case-insensitive rimuovi .toLowerCase() sotto.
-    const nameToCheck = rawName; // confronto esatto, case-sensitive
-
-    const isAllowed = allowedExactNames.some(allowed => allowed === nameToCheck);
-    if (!isAllowed) return; // scarta la stazione se non corrisponde esattamente
-
-    const lat = parseFloat(st.place?.location?.[1]);
-    const lon = parseFloat(st.place?.location?.[0]);
+    const nameToUse = matchedName;
+    const lat = parseFloat(st.place?.location?.[1]) || null;
+    const lon = parseFloat(st.place?.location?.[0]) || null;
 
     let temp = null, hum = null, press = null, t_corr = false;
 
@@ -406,7 +426,7 @@ for (const data of responses) {
 
     const obj = {
       S: (temp == null && hum == null && press == null) ? "1" : "0",
-      N: rawName,
+      N: nameToUse,
       T: temp, TH: null, TL: null,
       D: null, DH: null, DL: null,
       H: hum, HH: null, HL: null,
@@ -414,7 +434,7 @@ for (const data of responses) {
       R: null, RR: null,
       P: press,
       LAT: lat, LON: lon,
-      t_corr // rimane false (non applichiamo correzioni qui)
+      t_corr
     };
 
     allStations.push(obj);
@@ -430,7 +450,6 @@ console.error("Errore fetch Netatmo Liguria:", err);
 res.status(500).json({ error: err.message });
 }
 });
-
 // --- Nuovo endpoint LIMET ---
 const stationsLIMET = {
   Molassana: { link: "terzereti", lat: 44.461, lon: 8.987 },
