@@ -350,15 +350,23 @@ const stationsNetAtmo = [ // Zona Genova Ovest / Centro
 "https://app.netatmo.net/api/getpublicmeasures?limit=1&divider=7&quality=7&zoom=14&lat_ne=44.43377984606822&lon_ne=8.76708984375&lat_sw=44.41808794374846&lon_sw=8.7451171875&date_end=last&access_token=52d42bfc1777599b298b456c%7Cfb7e4663b914d3ae3d36f23c65230494", 
 ];
 
-const allowedNames = ["via giusepe mazzini", "via cianà", "via dei vassalli"];
+const allowedExactNames = [
+  "via giusepe mazzini",
+  "via cianà",
+  "via dei vassalli"
+];
 
 const timestamp = new Date().toISOString();
 const lines = [JSON.stringify({ timestamp })];
 const allStations = [];
 
-// ⚡ fetch in parallelo
+// Fetch parallelo: ottieni i JSON (se una fetch fallisce ritorna null)
 const responses = await Promise.all(
-  stationsNetAtmo.map(url => fetch(url).then(r => r.json()).catch(() => null))
+  stationsNetAtmo.map(url =>
+    fetch(url)
+      .then(r => r.ok ? r.json() : null)
+      .catch(() => null)
+  )
 );
 
 for (const data of responses) {
@@ -366,17 +374,21 @@ for (const data of responses) {
 
   data.body.forEach(st => {
     const id = st._id;
-    const name = (st.place?.street || st.place?.city || id);
-    const lowerName = name.toLowerCase();
+    // usa street se presente, altrimenti city; se entrambi assenti usa id
+    const rawName = st.place?.street ?? st.place?.city ?? id;
 
-    // ❌ filtra solo le stazioni ammesse
-    const isAllowed = allowedNames.some(n => lowerName.includes(n));
-    if (!isAllowed) return;
+    // Se vuoi controllo strettamente sui caratteri così come sono, fai confronto diretto:
+    // la lista allowedExactNames contiene le stringhe che devono essere esattamente identiche.
+    // Se desideri che la comparazione sia case-insensitive rimuovi .toLowerCase() sotto.
+    const nameToCheck = rawName; // confronto esatto, case-sensitive
+
+    const isAllowed = allowedExactNames.some(allowed => allowed === nameToCheck);
+    if (!isAllowed) return; // scarta la stazione se non corrisponde esattamente
 
     const lat = parseFloat(st.place?.location?.[1]);
     const lon = parseFloat(st.place?.location?.[0]);
 
-    let temp = null, hum = null, press = null;
+    let temp = null, hum = null, press = null, t_corr = false;
 
     if (st.measures) {
       for (const measure of Object.values(st.measures)) {
@@ -394,14 +406,15 @@ for (const data of responses) {
 
     const obj = {
       S: (temp == null && hum == null && press == null) ? "1" : "0",
-      N: name,
+      N: rawName,
       T: temp, TH: null, TL: null,
       D: null, DH: null, DL: null,
       H: hum, HH: null, HL: null,
       V: null, G: null,
       R: null, RR: null,
       P: press,
-      LAT: lat, LON: lon
+      LAT: lat, LON: lon,
+      t_corr // rimane false (non applichiamo correzioni qui)
     };
 
     allStations.push(obj);
