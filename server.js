@@ -317,80 +317,36 @@ app.get('/meteo3r.json', async (req, res) => {
 });
 app.get('/netatmoLiguria.json', async (req, res) => {
   try {
-const stationsNetAtmo = [ 
-  
-"https://app.netatmo.net/api/getpublicmeasures?limit=1&divider=7&quality=7&zoom=14&lat_ne=44.38669150215206&lon_ne=9.11865234375&lat_sw=44.37098696297173&lon_sw=9.0966796875&date_end=last&access_token=52d42bfc1777599b298b456c%7Cfb7e4663b914d3ae3d36f23c65230494",
-];
+const stationsNetAtmo = [ // Zona Genova Ovest / Centro 
+"https://app.netatmo.net/api/getpublicmeasures?limit=1&divider=7&quality=7&zoom=14&lat_ne=44.38669150215206&lon_ne=9.11865234375&lat_sw=44.37098696297173&lon_sw=9.0966796875&date_end=last&access_token=52d42bfc1777599b298b456c%7Cfb7e4663b914d3ae3d36f23c65230494",];
 
- const allowedExactNames = [
-      "via giusepe mazzini",
-      "via cianà",
-      "via dei vassalli"
-    ];
-
-    const normalizeForExactMatch = s =>
-      (s ?? "")
-        .normalize('NFC')
-        .replace(/\s+/g, ' ')
-        .trim();
-
-    const allowedNormalized = new Set(allowedExactNames.map(normalizeForExactMatch));
+    const tempCorrections = {};
 
     const timestamp = new Date().toISOString();
     const lines = [JSON.stringify({ timestamp })];
     const allStations = [];
 
     const responses = await Promise.all(
-      stationsNetAtmo.map(url =>
-        fetch(url)
-          .then(r => r.ok ? r.json() : null)
-          .catch(() => null)
-      )
+      stationsNetAtmo.map(url => fetch(url).then(r => r.json()).catch(() => null))
     );
-
+    
     for (const data of responses) {
       if (!data || !data.body || !Array.isArray(data.body)) continue;
-
-      for (const st of data.body) {
-        const candidates = [
-          st.place?.street,
-          st.place?.city,
-          st.place?.name,
-          st._id
-        ];
-
-        let matchedName = null;
-        console.log("----- STAZIONE -----");
-        console.log("Candidati grezzi:", candidates);
-
-        for (const raw of candidates) {
-          if (!raw) continue;
-          const norm = normalizeForExactMatch(raw);
-          const match = allowedNormalized.has(norm);
-          console.log(`→ "${raw}" → normalizzato: "${norm}" → match: ${match}`);
-          if (match) {
-            matchedName = raw;
-            break;
-          }
-        }
-
-        if (!matchedName) {
-          console.log("❌ Nessuna corrispondenza trovata, stazione scartata.\n");
-          continue;
-        }
-
-        console.log(`✅ ACCETTATA: ${matchedName}\n`);
-
-        const lat = parseFloat(st.place?.location?.[1]) || null;
-        const lon = parseFloat(st.place?.location?.[0]) || null;
-
+    
+      data.body.forEach(st => {
+        const id = st._id;
+        const name = (st.place?.street || st.place?.city || id).toLowerCase();
+        const lat = parseFloat(st.place?.location?.[1]);
+        const lon = parseFloat(st.place?.location?.[0]);
+    
         let temp = null, hum = null, press = null, t_corr = false;
+    
         if (st.measures) {
           for (const measure of Object.values(st.measures)) {
             const types = measure.type || [];
             const values = Object.values(measure.res || {})[0];
             if (!values) continue;
-
+    
             types.forEach((t, i) => {
               if (t === "temperature") temp = values[i];
               if (t === "humidity") hum = values[i];
@@ -398,10 +354,19 @@ const stationsNetAtmo = [
             });
           }
         }
-
+    
+        // 🔥 Correggi temperatura e aggiungi flag t_corr
+        for (const [key, correction] of Object.entries(tempCorrections)) {
+          if (name.includes(key)) {
+            if (temp != null) temp -= correction;
+            t_corr = true;
+            break;
+          }
+        }
+    
         const obj = {
           S: (temp == null && hum == null && press == null) ? "1" : "0",
-          N: matchedName,
+          N: st.place?.street || st.place?.city || id,
           T: temp, TH: null, TL: null,
           D: null, DH: null, DL: null,
           H: hum, HH: null, HL: null,
@@ -411,9 +376,9 @@ const stationsNetAtmo = [
           LAT: lat, LON: lon,
           t_corr
         };
-
+    
         allStations.push(obj);
-      }
+      });
     }
 
     allStations.forEach(st => lines.push(JSON.stringify(st)));
@@ -425,6 +390,7 @@ const stationsNetAtmo = [
     res.status(500).json({ error: err.message });
   }
 });
+
 // --- Nuovo endpoint LIMET ---
 const stationsLIMET = {
   Molassana: { link: "terzereti", lat: 44.461, lon: 8.987 },
