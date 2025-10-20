@@ -317,141 +317,113 @@ app.get('/meteo3r.json', async (req, res) => {
 });
 app.get('/netatmoLiguria.json', async (req, res) => {
   try {
-const stationsNetAtmo = [ // Zona Genova Ovest / Centro 
-"https://app.netatmo.net/api/getpublicmeasures?limit=1&divider=7&quality=7&zoom=13&lat_ne=44.402391829093915&lon_ne=8.96484375&lat_sw=44.37098696297173&lon_sw=8.9208984375&date_end=last&access_token=52d42bfc1777599b298b456c%7Cfb7e4663b914d3ae3d36f23c65230494", 
-"https://app.netatmo.net/api/getpublicmeasures?limit=1&divider=7&quality=7&zoom=14&lat_ne=44.41808794374846&lon_ne=8.98681640625&lat_sw=44.402391829093915&lon_sw=8.96484375&date_end=last&access_token=52d42bfc1777599b298b456c%7Cfb7e4663b914d3ae3d36f23c65230494",
-"https://app.netatmo.net/api/getpublicmeasures?limit=1&divider=7&quality=7&zoom=14&lat_ne=44.402391829093915&lon_ne=8.98681640625&lat_sw=44.38669150215206&lon_sw=8.96484375&date_end=last&access_token=52d42bfc1777599b298b456c%7Cfb7e4663b914d3ae3d36f23c65230494",
-"https://app.netatmo.net/api/getpublicmeasures?limit=1&divider=7&quality=7&zoom=14&lat_ne=44.41808794374846&lon_ne=8.96484375&lat_sw=44.402391829093915&lon_sw=8.94287109375&date_end=last&access_token=52d42bfc1777599b298b456c%7Cfb7e4663b914d3ae3d36f23c65230494",
-"https://app.netatmo.net/api/getpublicmeasures?limit=1&divider=7&quality=7&zoom=14&lat_ne=44.402391829093915&lon_ne=8.96484375&lat_sw=44.38669150215206&lon_sw=8.94287109375&date_end=last&access_token=52d42bfc1777599b298b456c%7Cfb7e4663b914d3ae3d36f23c65230494",
-"https://app.netatmo.net/api/getpublicmeasures?limit=1&divider=7&quality=7&zoom=14&lat_ne=44.41808794374846&lon_ne=9.0087890625&lat_sw=44.402391829093915&lon_sw=8.98681640625&date_end=last&access_token=52d42bfc1777599b298b456c%7Cfb7e4663b914d3ae3d36f23c65230494",
-"https://app.netatmo.net/api/getpublicmeasures?limit=1&divider=7&quality=7&zoom=14&lat_ne=44.402391829093915&lon_ne=9.0087890625&lat_sw=44.38669150215206&lon_sw=8.98681640625&date_end=last&access_token=52d42bfc1777599b298b456c%7Cfb7e4663b914d3ae3d36f23c65230494",
-"https://app.netatmo.net/api/getpublicmeasures?limit=1&divider=7&quality=7&zoom=14&lat_ne=44.402391829093915&lon_ne=9.03076171875&lat_sw=44.38669150215206&lon_sw=9.0087890625&date_end=last&access_token=52d42bfc1777599b298b456c%7Cfb7e4663b914d3ae3d36f23c65230494",
-"https://app.netatmo.net/api/getpublicmeasures?limit=1&divider=7&quality=7&zoom=14&lat_ne=44.38669150215206&lon_ne=9.03076171875&lat_sw=44.37098696297173&lon_sw=9.0087890625&date_end=last&access_token=52d42bfc1777599b298b456c%7Cfb7e4663b914d3ae3d36f23c65230494", 
-"https://app.netatmo.net/api/getpublicmeasures?limit=1&divider=7&quality=7&zoom=14&lat_ne=44.402391829093915&lon_ne=9.052734375&lat_sw=44.38669150215206&lon_sw=9.03076171875&date_end=last&access_token=52d42bfc1777599b298b456c%7Cfb7e4663b914d3ae3d36f23c65230494", 
-"https://app.netatmo.net/api/getpublicmeasures?limit=1&divider=7&quality=7&zoom=14&lat_ne=44.38669150215206&lon_ne=9.052734375&lat_sw=44.37098696297173&lon_sw=9.03076171875&date_end=last&access_token=52d42bfc1777599b298b456c%7Cfb7e4663b914d3ae3d36f23c65230494", 
-"https://app.netatmo.net/api/getpublicmeasures?limit=1&divider=7&quality=7&zoom=14&lat_ne=44.38669150215206&lon_ne=9.07470703125&lat_sw=44.37098696297173&lon_sw=9.052734375&date_end=last&access_token=52d42bfc1777599b298b456c%7Cfb7e4663b914d3ae3d36f23c65230494", 
-"https://app.netatmo.net/api/getpublicmeasures?limit=1&divider=7&quality=7&zoom=14&lat_ne=44.38669150215206&lon_ne=9.0966796875&lat_sw=44.37098696297173&lon_sw=9.07470703125&date_end=last&access_token=52d42bfc1777599b298b456c%7Cfb7e4663b914d3ae3d36f23c65230494", 
-"https://app.netatmo.net/api/getpublicmeasures?limit=1&divider=7&quality=7&zoom=14&lat_ne=44.41808794374846&lon_ne=8.94287109375&lat_sw=44.402391829093915&lon_sw=8.9208984375&date_end=last&access_token=52d42bfc1777599b298b456c%7Cfb7e4663b914d3ae3d36f23c65230494", 
-"https://app.netatmo.net/api/getpublicmeasures?limit=1&divider=7&quality=7&zoom=14&lat_ne=44.402391829093915&lon_ne=8.94287109375&lat_sw=44.38669150215206&lon_sw=8.9208984375&date_end=last&access_token=52d42bfc1777599b298b456c%7Cfb7e4663b914d3ae3d36f23c65230494", 
-"https://app.netatmo.net/api/getpublicmeasures?limit=1&divider=7&quality=7&zoom=14&lat_ne=44.41808794374846&lon_ne=8.9208984375&lat_sw=44.402391829093915&lon_sw=8.89892578125&date_end=last&access_token=52d42bfc1777599b298b456c%7Cfb7e4663b914d3ae3d36f23c65230494", 
-"https://app.netatmo.net/api/getpublicmeasures?limit=1&divider=7&quality=7&zoom=14&lat_ne=44.43377984606822&lon_ne=8.94287109375&lat_sw=44.41808794374846&lon_sw=8.9208984375&date_end=last&access_token=52d42bfc1777599b298b456c%7Cfb7e4663b914d3ae3d36f23c65230494", 
-"https://app.netatmo.net/api/getpublicmeasures?limit=1&divider=7&quality=7&zoom=14&lat_ne=44.43377984606822&lon_ne=8.9208984375&lat_sw=44.41808794374846&lon_sw=8.89892578125&date_end=last&access_token=52d42bfc1777599b298b456c%7Cfb7e4663b914d3ae3d36f23c65230494", 
-"https://app.netatmo.net/api/getpublicmeasures?limit=1&divider=7&quality=7&zoom=14&lat_ne=44.41808794374846&lon_ne=8.89892578125&lat_sw=44.402391829093915&lon_sw=8.876953125&date_end=last&access_token=52d42bfc1777599b298b456c%7Cfb7e4663b914d3ae3d36f23c65230494", 
-"https://app.netatmo.net/api/getpublicmeasures?limit=1&divider=7&quality=7&zoom=14&lat_ne=44.43377984606822&lon_ne=8.89892578125&lat_sw=44.41808794374846&lon_sw=8.876953125&date_end=last&access_token=52d42bfc1777599b298b456c%7Cfb7e4663b914d3ae3d36f23c65230494", 
-"https://app.netatmo.net/api/getpublicmeasures?limit=1&divider=7&quality=7&zoom=14&lat_ne=44.43377984606822&lon_ne=8.876953125&lat_sw=44.41808794374846&lon_sw=8.85498046875&date_end=last&access_token=52d42bfc1777599b298b456c%7Cfb7e4663b914d3ae3d36f23c65230494",
-"https://app.netatmo.net/api/getpublicmeasures?limit=1&divider=7&quality=7&zoom=14&lat_ne=44.43377984606822&lon_ne=8.85498046875&lat_sw=44.41808794374846&lon_sw=8.8330078125&date_end=last&access_token=52d42bfc1777599b298b456c%7Cfb7e4663b914d3ae3d36f23c65230494",
-"https://app.netatmo.net/api/getpublicmeasures?limit=1&divider=7&quality=7&zoom=14&lat_ne=44.449467536006935&lon_ne=8.876953125&lat_sw=44.43377984606822&lon_sw=8.85498046875&date_end=last&access_token=52d42bfc1777599b298b456c%7Cfb7e4663b914d3ae3d36f23c65230494",
-"https://app.netatmo.net/api/getpublicmeasures?limit=1&divider=7&quality=7&zoom=14&lat_ne=44.449467536006935&lon_ne=8.85498046875&lat_sw=44.43377984606822&lon_sw=8.8330078125&date_end=last&access_token=52d42bfc1777599b298b456c%7Cfb7e4663b914d3ae3d36f23c65230494", 
-"https://app.netatmo.net/api/getpublicmeasures?limit=1&divider=7&quality=7&zoom=14&lat_ne=44.43377984606822&lon_ne=8.8330078125&lat_sw=44.41808794374846&lon_sw=8.81103515625&date_end=last&access_token=52d42bfc1777599b298b456c%7Cfb7e4663b914d3ae3d36f23c65230494",
-"https://app.netatmo.net/api/getpublicmeasures?limit=1&divider=7&quality=7&zoom=14&lat_ne=44.449467536006935&lon_ne=8.8330078125&lat_sw=44.43377984606822&lon_sw=8.81103515625&date_end=last&access_token=52d42bfc1777599b298b456c%7Cfb7e4663b914d3ae3d36f23c65230494",
-"https://app.netatmo.net/api/getpublicmeasures?limit=1&divider=7&quality=7&zoom=14&lat_ne=44.43377984606822&lon_ne=8.81103515625&lat_sw=44.41808794374846&lon_sw=8.7890625&date_end=last&access_token=52d42bfc1777599b298b456c%7Cfb7e4663b914d3ae3d36f23c65230494",
-"https://app.netatmo.net/api/getpublicmeasures?limit=1&divider=7&quality=7&zoom=14&lat_ne=44.449467536006935&lon_ne=8.81103515625&lat_sw=44.43377984606822&lon_sw=8.7890625&date_end=last&access_token=52d42bfc1777599b298b456c%7Cfb7e4663b914d3ae3d36f23c65230494",
-"https://app.netatmo.net/api/getpublicmeasures?limit=1&divider=7&quality=7&zoom=14&lat_ne=44.43377984606822&lon_ne=8.7890625&lat_sw=44.41808794374846&lon_sw=8.76708984375&date_end=last&access_token=52d42bfc1777599b298b456c%7Cfb7e4663b914d3ae3d36f23c65230494",
-"https://app.netatmo.net/api/getpublicmeasures?limit=1&divider=7&quality=7&zoom=14&lat_ne=44.43377984606822&lon_ne=8.76708984375&lat_sw=44.41808794374846&lon_sw=8.7451171875&date_end=last&access_token=52d42bfc1777599b298b456c%7Cfb7e4663b914d3ae3d36f23c65230494", 
+const stationsNetAtmo = [ 
+  
+"https://app.netatmo.net/api/getpublicmeasures?limit=1&divider=7&quality=7&zoom=14&lat_ne=44.38669150215206&lon_ne=9.11865234375&lat_sw=44.37098696297173&lon_sw=9.0966796875&date_end=last&access_token=52d42bfc1777599b298b456c%7Cfb7e4663b914d3ae3d36f23c65230494",
 ];
 
-const allowedExactNames = [
-  "via giusepe mazzini",
-  "via cianà",
-  "via dei vassalli"
-];
-
-const normalizeForExactMatch = s =>
-  (s ?? "")
-    .normalize('NFC')
-    .replace(/\s+/g, ' ')
-    .trim();
-
-const allowedNormalized = new Set(allowedExactNames.map(normalizeForExactMatch));
-
-const timestamp = new Date().toISOString();
-const lines = [JSON.stringify({ timestamp })];
-const allStations = [];
-
-const responses = await Promise.all(
-  stationsNetAtmo.map(url =>
-    fetch(url)
-      .then(r => r.ok ? r.json() : null)
-      .catch(() => null)
-  )
-);
-
-for (const data of responses) {
-  if (!data || !data.body || !Array.isArray(data.body)) continue;
-
-  for (const st of data.body) {
-    const candidates = [
-      st.place?.street,
-      st.place?.city,
-      st.place?.name,
-      st._id
+ const allowedExactNames = [
+      "via giusepe mazzini",
+      "via cianà",
+      "via dei vassalli"
     ];
 
-    let matchedName = null;
-    console.log("----- STAZIONE -----");
-    console.log("Candidati grezzi:", candidates);
+    const normalizeForExactMatch = s =>
+      (s ?? "")
+        .normalize('NFC')
+        .replace(/\s+/g, ' ')
+        .trim();
 
-    for (const raw of candidates) {
-      if (!raw) continue;
-      const norm = normalizeForExactMatch(raw);
-      const match = allowedNormalized.has(norm);
-      console.log(`→ "${raw}" → normalizzato: "${norm}" → match: ${match}`);
-      if (match) {
-        matchedName = raw;
-        break;
+    const allowedNormalized = new Set(allowedExactNames.map(normalizeForExactMatch));
+
+    const timestamp = new Date().toISOString();
+    const lines = [JSON.stringify({ timestamp })];
+    const allStations = [];
+
+    const responses = await Promise.all(
+      stationsNetAtmo.map(url =>
+        fetch(url)
+          .then(r => r.ok ? r.json() : null)
+          .catch(() => null)
+      )
+    );
+
+    for (const data of responses) {
+      if (!data || !data.body || !Array.isArray(data.body)) continue;
+
+      for (const st of data.body) {
+        const candidates = [
+          st.place?.street,
+          st.place?.city,
+          st.place?.name,
+          st._id
+        ];
+
+        let matchedName = null;
+        console.log("----- STAZIONE -----");
+        console.log("Candidati grezzi:", candidates);
+
+        for (const raw of candidates) {
+          if (!raw) continue;
+          const norm = normalizeForExactMatch(raw);
+          const match = allowedNormalized.has(norm);
+          console.log(`→ "${raw}" → normalizzato: "${norm}" → match: ${match}`);
+          if (match) {
+            matchedName = raw;
+            break;
+          }
+        }
+
+        if (!matchedName) {
+          console.log("❌ Nessuna corrispondenza trovata, stazione scartata.\n");
+          continue;
+        }
+
+        console.log(`✅ ACCETTATA: ${matchedName}\n`);
+
+        const lat = parseFloat(st.place?.location?.[1]) || null;
+        const lon = parseFloat(st.place?.location?.[0]) || null;
+
+        let temp = null, hum = null, press = null, t_corr = false;
+        if (st.measures) {
+          for (const measure of Object.values(st.measures)) {
+            const types = measure.type || [];
+            const values = Object.values(measure.res || {})[0];
+            if (!values) continue;
+
+            types.forEach((t, i) => {
+              if (t === "temperature") temp = values[i];
+              if (t === "humidity") hum = values[i];
+              if (t === "pressure") press = values[i];
+            });
+          }
+        }
+
+        const obj = {
+          S: (temp == null && hum == null && press == null) ? "1" : "0",
+          N: matchedName,
+          T: temp, TH: null, TL: null,
+          D: null, DH: null, DL: null,
+          H: hum, HH: null, HL: null,
+          V: null, G: null,
+          R: null, RR: null,
+          P: press,
+          LAT: lat, LON: lon,
+          t_corr
+        };
+
+        allStations.push(obj);
       }
     }
 
-    if (!matchedName) {
-      console.log("❌ Nessuna corrispondenza trovata, stazione scartata.\n");
-      continue;
-    }
+    allStations.forEach(st => lines.push(JSON.stringify(st)));
 
-    console.log(`✅ ACCETTATA: ${matchedName}\n`);
-
-    const lat = parseFloat(st.place?.location?.[1]) || null;
-    const lon = parseFloat(st.place?.location?.[0]) || null;
-
-    let temp = null, hum = null, press = null, t_corr = false;
-    if (st.measures) {
-      for (const measure of Object.values(st.measures)) {
-        const types = measure.type || [];
-        const values = Object.values(measure.res || {})[0];
-        if (!values) continue;
-
-        types.forEach((t, i) => {
-          if (t === "temperature") temp = values[i];
-          if (t === "humidity") hum = values[i];
-          if (t === "pressure") press = values[i];
-        });
-      }
-    }
-
-    const obj = {
-      S: (temp == null && hum == null && press == null) ? "1" : "0",
-      N: matchedName,
-      T: temp, TH: null, TL: null,
-      D: null, DH: null, DL: null,
-      H: hum, HH: null, HL: null,
-      V: null, G: null,
-      R: null, RR: null,
-      P: press,
-      LAT: lat, LON: lon,
-      t_corr
-    };
-
-    allStations.push(obj);
+    res.setHeader("Content-Type", "application/json");
+    res.send(lines.join("\n"));
+  } catch (err) {
+    console.error("Errore fetch Netatmo Liguria:", err);
+    res.status(500).json({ error: err.message });
   }
-}
-
-allStations.forEach(st => lines.push(JSON.stringify(st)));
-
-res.setHeader("Content-Type", "application/json");
-res.send(lines.join("\n"));
-} catch (err) {
-console.error("Errore fetch Netatmo Liguria:", err);
-res.status(500).json({ error: err.message });
-}
 });
 // --- Nuovo endpoint LIMET ---
 const stationsLIMET = {
